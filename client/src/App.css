@@ -1,7 +1,12 @@
 @import "tailwindcss";
 
 body{
-    height: 100dvh;
+    height: 100%;
     width: 100vw;
     background: linear-gradient(to bottom, #E0F2FF, #FDECEA);
+    overflow-x: hidden;
+}
+
+.skills::-webkit-scrollbar{
+    width: 0;
 }
