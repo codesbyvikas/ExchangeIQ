@@ -1,4 +1,4 @@
-[
+const Skills = [
   {
     "name": "Python Programming",
     "category": "Tech",
@@ -186,3 +186,6 @@
     "icon": "📄"
   }
 ]
+
+
+export default Skills;
