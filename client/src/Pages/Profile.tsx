@@ -3,10 +3,10 @@ import Avatar from '../assets/Avatar.png'
 
 const Profile = () => {
     return (
-        <div className="w-full h-dvh flex justify-center items-center bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
+        <div className="w-full h-full flex justify-center items-center bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
             <form
                 method="post"
-                className="w-full max-w-xl bg-white rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center"
+                className="w-full max-w-xl h-dvh overflow-y-auto bg-white shadow-2xl px-10 py-8 flex flex-col items-center"
             >
                 <label className="flex flex-col items-center justify-center mb-4 cursor-pointer group" htmlFor="photo">
                     <div className="relative">
@@ -69,10 +69,10 @@ const Profile = () => {
                     />
                 </div>
                 <button
-                    className="w-full py-3 bg-[#3178C6] text-white rounded-lg font-semibold shadow hover:bg-[#225a8c] transition"
+                    className="w-full py-3 bg-[#3178C6] text-white rounded-lg font-semibold shadow cursor-pointer hover:bg-[#225a8c] transition"
                     type="submit"
                 >
-                    Next
+                    Submit
                 </button>
             </form>
         </div>

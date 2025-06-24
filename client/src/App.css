@@ -7,6 +7,6 @@ body{
     overflow-x: hidden;
 }
 
-.skills::-webkit-scrollbar{
+form::-webkit-scrollbar,.skills::-webkit-scrollbar{
     width: 0;
 }
