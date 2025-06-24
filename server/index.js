@@ -13,9 +13,11 @@ require("./config/google");
 
 // Route files
 const authRoutes = require("./routes/auth");
+const profilRoutes = require("./routes/profile");
 
 // Initialize app
 const app = express();
+app.use(express.json());
 
 // Enable CORS for frontend
 app.use(cors({
@@ -58,6 +60,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/auth", authRoutes);
+app.user("/profile", profilRoutes)
 
 // Start Server
 const PORT = process.env.PORT || 3000;
