@@ -3,7 +3,6 @@ const router = express.Router();
 const User = require('../models/User');
 const authCheck = require('../middleware/authCheck');
 
-// POST /profile/edit
 router.post('/profile/edit', authCheck, async (req, res) => {
   const { name, profession, learnSkills, teachSkills } = req.body;
 
