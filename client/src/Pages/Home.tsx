@@ -1,5 +1,5 @@
 import Navbar from '../Components/Navbar'
-import Skills from '../Components/Skills.ts'
+import Skills from '../Components/Skills.tsx'
 import SkillCard from '../Components/SkillCard' 
 
 const Home = () => {

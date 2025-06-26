@@ -1,18 +1,16 @@
 import React from 'react'
+import type { JSX } from 'react';
 
-// Define the Skill interface
+// Skill type with icon as JSX.Element
 export interface Skill {
   name: string;
-  icon: string;
+  icon: JSX.Element;
   tags: string[];
 }
 
-// Destructure the `skill` prop and type it
 const SkillCard: React.FC<{ skill: Skill }> = ({ skill }) => {
   return (
-    <div
-      className='relative w-80 min-w-80 h-64 p-6 bg-white flex flex-col items-center gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2'
-    >
+    <div className='relative w-80 min-w-80 h-64 p-6 bg-white flex flex-col items-center gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2'>
       <div className='flex items-center justify-center w-16 h-16 rounded-full bg-[#e0f2ff] text-5xl mb-2'>
         {skill.icon}
       </div>
@@ -34,4 +32,4 @@ const SkillCard: React.FC<{ skill: Skill }> = ({ skill }) => {
   )
 }
 
-export default SkillCard
+export default SkillCard;

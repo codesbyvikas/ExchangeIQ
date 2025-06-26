@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import Skills from '../Components/Skills.ts';
-import type { Skill } from '../Components/Skills.ts';
+import Skills from '../Components/Skills.tsx';
+import type { Skill } from '../Components/Skills.tsx';
 
 const getAllTags = (skills: Skill[]): string[] => {
   const tags = new Set<string>();
