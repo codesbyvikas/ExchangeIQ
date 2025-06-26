@@ -1,4 +1,12 @@
-const Skills = [
+export interface Skill{
+  name:string;
+  category:string;
+  tags:string[];
+  icon:string;
+}
+
+
+const Skills: Skill[] = [
   {
     "name": "Python Programming",
     "category": "Tech",

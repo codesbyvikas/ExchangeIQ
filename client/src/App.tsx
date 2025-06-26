@@ -1,4 +1,3 @@
-import React from 'react'
 import { Routes, Route } from "react-router-dom";
 import './App.css'
 import Signup from './Pages/Signup';
@@ -12,7 +11,7 @@ const App = () => {
       <Routes>
         <Route path="/signup" element={<Signup />} />
         <Route path="/" element={<Home />} />
-        <Route path="/profile" element={<Profile />} />
+cd         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/questions" element={<Questions />} />
       </Routes>
     </>

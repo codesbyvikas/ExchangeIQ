@@ -1,4 +1,3 @@
-import React from 'react'
 import Logo from '../../src/assets/logopng.png'
 
 const Signup = () => {

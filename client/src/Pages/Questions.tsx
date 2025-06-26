@@ -1,31 +1,31 @@
 import React, { useState } from 'react'
-import Skills from '../Components/Skills.js'
+import Skills from '../Components/Skills.ts';
+import type { Skill } from '../Components/Skills.ts';
 
-const getAllTags = (skills) => {
-    const tags = new Set()
-    skills.forEach(skill => skill.tags.forEach(tag => tags.add(tag)))
-    return Array.from(tags)
-}
+const getAllTags = (skills: Skill[]): string[] => {
+  const tags = new Set<string>();
+  skills.forEach(skill => skill.tags.forEach(tag => tags.add(tag)));
+  return Array.from(tags);
+};
 
 const Questions = () => {
-    const [search, setSearch] = useState('')
-    const [selectedTags, setSelectedTags] = useState([])
-    const [selectedSkills, setSelectedSkills] = useState(0)
-    const [selectedSkillNames, setSelectedSkillNames] = useState([])
+    const [search, setSearch] = useState<string>('')
+    const [selectedTags, setSelectedTags] = useState<string[]>([])
+    const [selectedSkillNames, setSelectedSkillNames] = useState<string[]>([]);
+    const [selectedSkills, setSelectedSkills] = useState<number>(0);
 
     const allTags = getAllTags(Skills)
 
-    const handleTagClick = (tag) => {
-        setSelectedTags(prev =>
-            prev.includes(tag)
-                ? prev.filter(t => t !== tag)
-                : [...prev, tag]
-        )
+    const handleTagClick = (tag: string): void => {
+            setSelectedTags(prev =>
+            prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+            );
+        };
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearch(e.target.value);
     }
 
-    const handleSearchChange = (e) => {
-        setSearch(e.target.value)
-    }
 
     const handleClearFilters = () => {
         setSearch('')
@@ -39,7 +39,7 @@ const Questions = () => {
     })
 
     // Add/remove skill from selectedSkills
-    const handleSelectedSkills = (skillName) => {
+    const handleSelectedSkills = (skillName:string) => {
         setSelectedSkillNames(prev => {
             if (prev.includes(skillName)) {
                 setSelectedSkills(count => count - 1)
