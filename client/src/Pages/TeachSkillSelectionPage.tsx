@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import Skills from '../utils/data/Skills.tsx';
 import type { Skill } from '../utils/data/Skills.tsx';
+import apiHelper from '../utils/api/profile/profileApi.tsx';
+import { useNavigate } from 'react-router-dom';
 
 const getAllTags = (skills: Skill[]): string[] => {
   const tags = new Set<string>();
@@ -14,6 +16,7 @@ const TeachSkillSelectionPage = () => {
     const [selectedTeachSkills, setTeachSelectedSkills] = useState<number>(0);
 
     const allTags = getAllTags(Skills)
+    const navigate = useNavigate();
 
     const handleTagClick = (tag: string): void => {
             setSelectedTags(prev =>
@@ -49,6 +52,25 @@ const TeachSkillSelectionPage = () => {
             }
         })
     }
+
+     const handleSubmit = async (e: React.FormEvent) => {
+            e.preventDefault();
+            console.log("clicked handle")
+
+            try {
+            await apiHelper.profileUpdate({
+                teachSkills: selectedTeachSkillNames,
+            });
+
+            // 👇 Redirect to next step: skill learn page
+            navigate('/profile/skills/learn');
+            } catch (err) {
+            console.error("Failed to update skills:", err);
+            // TODO: show error toast or message
+            }
+        };
+
+   
 
     return (
             <div className="w-full h-full flex justify-center items-center bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
@@ -92,7 +114,7 @@ const TeachSkillSelectionPage = () => {
                         <h4 className='w-full flex justify-end mt-3'>
                             Selected Skills: {selectedTeachSkills}
                         </h4>
-                        <div className='skills w-full grid gap-2 grid-cols-3 md:grid-cols-2 py-4 px-2'>
+                        <div className='skills w-full grid gap-2 grid-cols-2 md:grid-cols-3 py-4 px-2'>
                             {filteredSkills.length === 0 ? (
                                 <div className="text-gray-400 text-center w-full p-39 m">No skills found.</div>
                             ) : (
@@ -135,6 +157,14 @@ const TeachSkillSelectionPage = () => {
                         </div>
                         
                     </div>
+
+                    <button
+                        onClick={handleSubmit}
+                        className="w-80 py-3 fixed bottom-4 bg-[#3178C6] text-white rounded-lg font-semibold shadow cursor-pointer hover:bg-[#225a8c] transition"
+                        type="submit"
+                    >
+                        Next
+                    </button>
                     
                 </form>
                
