@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import Skills from '../utils/data/Skills.tsx';
 import type { Skill } from '../utils/data/Skills.tsx';
+import apiHelper from '../utils/api/profile/profileApi.tsx';
+import { useNavigate } from 'react-router-dom';
 
 const getAllTags = (skills: Skill[]): string[] => {
   const tags = new Set<string>();
@@ -15,6 +17,7 @@ const LearnSkillSelectPage = () => {
     const [selectedLearnSkills, setLearnSelectedSkills] = useState<number>(0);
 
     const allTags = getAllTags(Skills)
+    const navigate =  useNavigate();
 
     const handleTagClick = (tag: string): void => {
             setSelectedTags(prev =>
@@ -51,6 +54,22 @@ const LearnSkillSelectPage = () => {
         })
     }
 
+    const handleSubmit = async (e: React.FormEvent) => {
+            e.preventDefault();
+            console.log("clicked handle")
+
+            try {
+            await apiHelper.profileUpdate({
+                learnSkills: selectedLearnSkillNames,
+            });
+
+            navigate('/profile/skills/teach');
+            } catch (err) {
+            console.error("Failed to update skills:", err);
+            }
+        };
+
+
     return (
             <div className="w-full h-full flex justify-center items-center bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
                 <form
@@ -58,7 +77,21 @@ const LearnSkillSelectPage = () => {
                     className="w-full max-w-6xl mt-10 h-dvh rounded-3xl shadow-lg overflow-y-auto bg-white shadow-2xl px-10 py-8 flex flex-col items-center"
                 >
                     <div className='w-full h-auto'>
-                        <h4 className='font-semibold text-2xl mb-2 text-[grey]'>Please Select the skills you want to learn.</h4>
+                        <div className='flex justify-between items-center mb-2'>
+                            <h4 className='font-semibold text-2xl text-[grey]'>
+                                Please Select the skills you want to learn.
+                            </h4>
+                            <div className="flex gap-4">
+                            
+                            <button
+                                type="submit"
+                                onClick={handleSubmit}
+                                className="w-32 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer font-medium hover:bg-green-700 transition"
+                            >
+                                Next
+                            </button>
+                            </div>
+                            </div>
                         <input
                             className='w-full p-2 mt-2 border border-[grey] outline-[#3178C6] rounded-lg'
                             type="text"
@@ -93,7 +126,7 @@ const LearnSkillSelectPage = () => {
                         <h4 className='w-full flex justify-end mt-3'>
                             Selected Skills: {selectedLearnSkills}
                         </h4>
-                        <div className='skills w-full grid gap-2 grid-cols-3 md:grid-cols-2 py-4 px-2'>
+                        <div className='skills w-full grid gap-2 grid-cols-2 md:grid-cols-3 py-4 px-2'>
                             {filteredSkills.length === 0 ? (
                                 <div className="text-gray-400 text-center w-full p-39 m">No skills found.</div>
                             ) : (

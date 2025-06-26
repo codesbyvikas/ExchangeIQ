@@ -63,7 +63,7 @@ const TeachSkillSelectionPage = () => {
             });
 
             // 👇 Redirect to next step: skill learn page
-            navigate('/profile/skills/learn');
+            navigate('/');
             } catch (err) {
             console.error("Failed to update skills:", err);
             // TODO: show error toast or message
@@ -79,9 +79,29 @@ const TeachSkillSelectionPage = () => {
                     className="w-full max-w-6xl mt-10 h-dvh rounded-3xl shadow-lg overflow-y-auto bg-white shadow-2xl px-10 py-8 flex flex-col items-center"
                 >
                     <div className='w-full h-auto'>
-                        <h4 className='font-semibold text-2xl mb-2 text-[grey]'>Please Select the skills you can teach.</h4>
+                        <div className='flex justify-between items-center mb-2'>
+                            <h4 className='font-semibold text-2xl text-[grey]'>
+                                Please Select the skills you can teach.
+                            </h4>
+                            <div className="flex gap-4">
+                            <button
+                                type="button"
+                                onClick={() => navigate("/profile/skills/learn")} 
+                                className="w-32 px-4 py-2 bg-gray-400 text-white rounded-lg cursor-pointer font-medium hover:bg-gray-500 transition"
+                            >
+                                Prev
+                            </button>
+                            <button
+                                type="submit"
+                                onClick={handleSubmit}
+                                className="w-32 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer font-medium hover:bg-green-700 transition"
+                            >
+                                Next
+                            </button>
+                            </div>
+                            </div>
                         <input
-                            className='w-full p-2 mt-2 border border-[grey] outline-[#3178C6] rounded-lg'
+                            className='w-full p-2 mt-2 border border-[grey-600] outline-[#3178C6] rounded-lg'
                             type="text"
                             placeholder='Eg: Web Development, Video Editing, etc...'
                             value={search}
@@ -158,13 +178,7 @@ const TeachSkillSelectionPage = () => {
                         
                     </div>
 
-                    <button
-                        onClick={handleSubmit}
-                        className="w-80 py-3 fixed bottom-4 bg-[#3178C6] text-white rounded-lg font-semibold shadow cursor-pointer hover:bg-[#225a8c] transition"
-                        type="submit"
-                    >
-                        Next
-                    </button>
+                    
                     
                 </form>
                
