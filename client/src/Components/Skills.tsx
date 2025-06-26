@@ -2,18 +2,24 @@ import { SiPython, SiHtml5, SiNodedotjs, SiGoogleanalytics, SiCanva, SiAdobephot
 import { FaGuitar, FaMicrophoneAlt, FaPaintBrush, FaPenFancy, FaCamera, FaUtensils, FaMoneyBillAlt, FaUserTie, FaTree, FaBrain, FaHandsHelping } from 'react-icons/fa';
 import { GiCookingPot, GiMeditation } from 'react-icons/gi';
 import { MdOutlineDraw, MdFitnessCenter } from 'react-icons/md';
-import type { Skill } from './SkillCard';
+import type { JSX } from 'react';
+
+export interface Skill {
+  name: string;
+  tags: string[];
+  icon: JSX.Element;
+}
 
 const Skills: Skill[] = [
   {
     name: "Python Programming",
     tags: ["Tech", "Coding", "Remote"],
-    icon: <SiPython color="#3776AB" size={32} />, // Official Python color
+    icon: <SiPython color="#3776AB" size={32} />, 
   },
   {
     name: "Web Development",
     tags: ["Tech", "Frontend", "Remote"],
-    icon: <SiHtml5 color="#E34F26" size={32} />, // HTML color
+    icon: <SiHtml5 color="#E34F26" size={32} />, 
   },
   {
     name: "App Development",
