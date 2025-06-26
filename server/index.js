@@ -60,7 +60,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/auth", authRoutes);
-app.user("/profile", profilRoutes)
+app.use("/profile", profilRoutes)
 
 // Start Server
 const PORT = process.env.PORT || 3000;

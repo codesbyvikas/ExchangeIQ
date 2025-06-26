@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const authCheck = require('../middleware/authCheck');
+const User = require('../models/user');
+const authCheck = require('../middlewares/auth');
 
 router.post('/profile/edit', authCheck, async (req, res) => {
   const { name, profession, learnSkills, teachSkills } = req.body;

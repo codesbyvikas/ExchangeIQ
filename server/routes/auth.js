@@ -1,5 +1,6 @@
 const express = require("express");
 const passport = require("passport");
+const checkProfileAndRedirect = require('../middlewares/profile');
 
 const router = express.Router();
 
@@ -10,9 +11,9 @@ router.get("/google", passport.authenticate("google", {
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "/",
-    successRedirect: "/profile",
-  })
+    failureRedirect: "/", 
+  }),
+  checkProfileAndRedirect 
 );
 
 router.get("/logout", (req, res) => {
@@ -20,7 +21,5 @@ router.get("/logout", (req, res) => {
     res.redirect("/");
   });
 });
-
-
 
 module.exports = router;

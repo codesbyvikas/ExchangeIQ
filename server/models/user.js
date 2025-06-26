@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema({
   },
   profession: {
     type: String,
+    default:"",
   },
   skillsToTeach: {
     type: [String],
