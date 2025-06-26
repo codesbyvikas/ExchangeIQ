@@ -10,7 +10,7 @@ export interface Skill {
 
 const SkillCard: React.FC<{ skill: Skill }> = ({ skill }) => {
   return (
-    <div className='relative w-80 min-w-80 h-64 p-6 bg-white flex flex-col items-center gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2'>
+    <div className='relative w-40 min-w-80 h-64 p-6 bg-white flex flex-col items-center gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2'>
       <div className='flex items-center justify-center w-16 h-16 rounded-full bg-[#e0f2ff] text-5xl mb-2'>
         {skill.icon}
       </div>

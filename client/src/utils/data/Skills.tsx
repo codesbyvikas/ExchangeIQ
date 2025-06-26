@@ -22,8 +22,8 @@ const Skills: Skill[] = [
     icon: <SiHtml5 color="#E34F26" size={32} />, 
   },
   {
-    name: "App Development",
-    tags: ["Tech", "Mobile", "Remote"],
+    name: "NodeJs",
+    tags: ["Tech", "Backend", "Remote"],
     icon: <SiNodedotjs color="#339933" size={32} />,
   },
   {
