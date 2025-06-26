@@ -55,26 +55,32 @@ const LearnSkillSelectPage = () => {
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
-            e.preventDefault();
-            console.log("clicked handle")
+        e.preventDefault();
+        console.log("clicked handle");
 
-            try {
+        try {
             await apiHelper.profileUpdate({
-                learnSkills: selectedLearnSkillNames,
+            learnSkills: selectedLearnSkillNames,
             });
 
             navigate('/profile/skills/teach');
-            } catch (err) {
+        } catch (err: any) {
             console.error("Failed to update skills:", err);
+            
+            // If user is unauthorized, redirect to /auth
+            if (err?.error === 'Unauthorized') {
+            navigate('/auth');
             }
+        }
         };
+
 
 
     return (
             <div className="w-full h-full flex justify-center items-center bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
                 <form
                     method="post"
-                    className="w-full max-w-6xl mt-10 h-dvh rounded-3xl shadow-lg overflow-y-auto bg-white shadow-2xl px-10 py-8 flex flex-col items-center"
+                    className="w-full max-w-6xl mt-10 h-full mb-10 rounded-3xl shadow-lg overflow-y-auto bg-white shadow-2xl px-10 py-8 flex flex-col items-center"
                 >
                     <div className='w-full h-auto'>
                         <div className='flex justify-between items-center mb-2'>
