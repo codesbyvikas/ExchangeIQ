@@ -64,8 +64,12 @@ const TeachSkillSelectionPage = () => {
 
             // 👇 Redirect to next step: skill learn page
             navigate('/');
-            } catch (err) {
-            console.error("Failed to update skills:", err);
+            } catch (err:any) {
+            console.error("Failed to update skills:", err.error);
+            
+            if(err.error=="Unauthorized"){
+                navigate("/auth")
+            }
             // TODO: show error toast or message
             }
         };
