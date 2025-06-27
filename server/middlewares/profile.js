@@ -1,41 +1,43 @@
 const User = require('../models/user');
-const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || "http://localhost:5173";
 
-const checkProfileAndRedirect = async (req, res, next) => {
+const checkProfileAndRespond = async (req, res) => {
   if (!req.isAuthenticated || !req.isAuthenticated()) {
-    return res.redirect(`${FRONTEND_BASE_URL}/login`);
+    return res.status(401).json({ success: false, message: "Not authenticated" });
   }
 
   try {
     const user = await User.findById(req.user._id);
 
     if (!user) {
-      return res.redirect(`${FRONTEND_BASE_URL}/login`);
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     const hasProfession = user.profession && user.profession.trim().length > 0;
     const hasSkillsToTeach = Array.isArray(user.skillsToTeach) && user.skillsToTeach.length > 0;
     const hasSkillsToLearn = Array.isArray(user.skillsToLearn) && user.skillsToLearn.length > 0;
 
-    
+    const incompleteSections = [];
+    if (!hasSkillsToLearn) incompleteSections.push("skillsToLearn");
+    if (!hasSkillsToTeach) incompleteSections.push("skillsToTeach");
+    if (!hasProfession) incompleteSections.push("profession");
 
-    if (!hasSkillsToTeach) {
-      return res.redirect(`${FRONTEND_BASE_URL}/profile/skills/teach`);
-    }
+    const profileComplete = incompleteSections.length === 0;
 
-    if (!hasSkillsToLearn) {
-      return res.redirect(`${FRONTEND_BASE_URL}/profile/skills/learn`);
-    }
-    
-    if (!hasProfession) {
-      return res.redirect(`${FRONTEND_BASE_URL}/set-profession`);
-    }
-
-    next();
+    return res.status(200).json({
+      success: true,
+      message: "Logged in successfully",
+      profileComplete,
+      missingFields: incompleteSections,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
   } catch (err) {
-    console.error('checkProfileAndRedirect error:', err);
-    return res.redirect(`${FRONTEND_BASE_URL}/login`);
+    console.error("checkProfileAndRespond error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-module.exports = checkProfileAndRedirect;
+module.exports = checkProfileAndRespond;
