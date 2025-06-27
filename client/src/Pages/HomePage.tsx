@@ -1,16 +1,16 @@
 import Navbar from '../Components/Navbar';
 import Skills from '../utils/data/Skills.tsx';
 import SkillCard from '../Components/SkillCard';
+import ExchangeSkillCard from '../Components/ExchangeSkillCard.tsx';
+import LearnSkillCard from '../Components/LearnSkillCard.tsx';
 
 const Home = () => {
   return (
     <div className="relative h-screen w-full overflow-hidden">
-      {/* Fixed Navbar */}
       <div className="fixed top-0 left-0 w-full z-50 bg-white">
         <Navbar />
       </div>
 
-      {/* Scrollable Content that starts BELOW the fixed navbar */}
       <div className="pt-[130px] overflow-y-auto h-full w-full flex justify-center">
         <div className="w-11/12 h-auto px-4 pb-10 flex flex-col gap-10">
           {/* Exchange Section */}
@@ -18,7 +18,7 @@ const Home = () => {
             <h4 className="font-semibold text-3xl mb-2">Skills You Can Exchange</h4>
             <div className="skills w-full flex gap-6 overflow-x-auto py-4">
               {Skills.map((skill, idx) => (
-                <SkillCard key={idx} skill={skill} />
+                <ExchangeSkillCard key={idx} skill={skill} />
               ))}
             </div>
           </div>
@@ -28,7 +28,7 @@ const Home = () => {
             <h4 className="font-semibold text-3xl mb-2">Skills You Can Learn</h4>
             <div className="skills w-full flex gap-6 overflow-x-auto py-4">
               {Skills.map((skill, idx) => (
-                <SkillCard key={idx} skill={skill} />
+                <LearnSkillCard key={idx} skill={skill} />
               ))}
             </div>
           </div>
