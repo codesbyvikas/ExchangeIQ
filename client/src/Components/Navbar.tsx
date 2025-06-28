@@ -1,8 +1,28 @@
 import { Link } from 'react-router-dom'
 import Logo from '../assets/logopng.png'
 import Avatar from '../assets/Avatar.png'
+import { useEffect, useState } from 'react'
+import profileApiHelper from '../utils/api/profileApi'
+import type { UserType } from '../utils/types/user'
+
+
 
 const Navbar = () => {
+  const [user, setUser] = useState<UserType | null>(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+        try {
+          const data = await profileApiHelper.getProfile();
+          setUser(data);
+        } catch (error) {
+          console.error('Failed to fetch user:', error);
+        }
+      };
+
+      fetchUserData();
+    }, []);
+
   return (
     <div className='w-full bg-[#E0F2FF]'>
       {/* Top bar: Logo + Name | Avatar */}
@@ -10,13 +30,20 @@ const Navbar = () => {
         {/* Logo and Name vertically stacked */}
         <div className='pl-4 flex flex-col'>
           <img className='w-60 h-20 object-cover' src={Logo} alt="ExchangeIQ Logo" />
-          <h2 className="font-bold  ml-10 text-xl text-[#3178C6] mb-2">Hello, John</h2>
+          <h2 className="font-bold  ml-10 text-xl text-[#3178C6] mb-2"><span>{user ? `Hello, ${user.name}` : 'please login'}</span></h2>
         </div>
 
-        {/* Avatar */}
-        <Link to="/profile">
-          <img className='w-14 h-14' src={Avatar} alt="Avatar" />
-        </Link>
+        <div className="rounded-2xl shadow-lg  cursor-pointer ">
+          {/* Avatar */}
+          <Link to="/profile">
+            <img
+              className="w-14 h-14 rounded-full object-cover"
+              src={user?.photo || Avatar}
+              alt={user?.name || 'Avatar'}
+            />
+          </Link>
+        </div>
+        
       </div>
 
       {/* Navigation Menu */}

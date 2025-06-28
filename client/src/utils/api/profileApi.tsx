@@ -1,5 +1,6 @@
 // profileApi.tsx
 import axios from "axios";
+import type { UserType } from "../types/user";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -26,7 +27,7 @@ interface ProfileUpdateResponse {
   user: UpdatedUser;
 }
 
-const apiHelper = {
+const profileApiHelper = {
   profileUpdate: async (payload: ProfileUpdatePayload): Promise<ProfileUpdateResponse> => {
     try {
       const res = await axios.post<ProfileUpdateResponse>(
@@ -43,7 +44,7 @@ const apiHelper = {
     }
   },
 
-  getProfile: async (): Promise<UpdatedUser> => {
+  getProfile: async (): Promise<UserType> => {
     try {
       const res = await axios.get<UpdatedUser>(`${API_URL}/profile/me`, {
         withCredentials: true,
@@ -56,4 +57,5 @@ const apiHelper = {
   }
 };
 
-export default apiHelper;
+export default  profileApiHelper 
+;

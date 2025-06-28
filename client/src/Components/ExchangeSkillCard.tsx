@@ -22,7 +22,7 @@ export interface UserData{
 
 const ExchangeSkillCard: React.FC<{ skill: Skill }> = ({ skill }) => {
   return (
-    <div className='relative w-40 min-w-80  p-6 bg-white flex flex-col  gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2'>
+    <div className='relative w-40 min-w-80 p-3 bg-white flex flex-col  gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2'>
        <div className='flex flex-row items-center gap-2'>
          <Link to="/profile">
           <img className='w-10' src={Avatar} alt="Avatar" />
@@ -34,7 +34,7 @@ const ExchangeSkillCard: React.FC<{ skill: Skill }> = ({ skill }) => {
         {skill.icon}
       </div>
       <h2 className='text-2xl font-semibold text-gray-800 mb-2'>{skill.name}</h2>
-      <div className='flex flex-wrap gap-2 mb-8'>
+      <div className='flex flex-wrap gap-2 mb-10 '>
         <h4 >Exchange for:</h4>
           <span
             className='bg-[#f0f4f8] mb-3 font-bold text- text-[#3178C6] px-2 py-1 rounded '>

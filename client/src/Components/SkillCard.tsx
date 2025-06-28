@@ -1,21 +1,29 @@
-import React from 'react'
-import type { JSX } from 'react';
+import React from 'react';
 
-// Skill type with icon as JSX.Element
 export interface Skill {
   name: string;
-  icon: JSX.Element;
+  iconUrl: string;
   tags: string[];
 }
 
-const SkillCard: React.FC<{ skill: Skill }> = ({ skill }) => {
+interface SkillCardProps {
+  skill: Skill;
+  isSelected?: boolean;
+  // showSelectButton?: boolean;
+}
+
+const SkillCard: React.FC<SkillCardProps> = ({ skill, isSelected,  }) => {
   return (
-    <div className='relative w-40 min-w-80 h-64 p-6 bg-white flex flex-col items-center gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2'>
-      <div className='flex items-center justify-center w-16 h-16 rounded-full bg-[#e0f2ff] text-5xl mb-2'>
-        {skill.icon}
+    <div className='relative w-full sm:w-80 h-64 p-6 bg-white flex flex-col items-center gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2'>
+      <div className='flex items-center justify-center w-16 h-16 rounded-full bg-[#e0f2ff]'>
+        <img
+          src={skill.iconUrl}
+          className='w-full h-full object-cover rounded-full'
+          alt={`${skill.name} icon`}
+        />
       </div>
-      <h2 className='text-2xl font-semibold text-gray-800'>{skill.name}</h2>
-      <div className='flex flex-wrap gap-2 mb-8'>
+      <h2 className='text-xl sm:text-2xl font-semibold text-gray-800 text-center'>{skill.name}</h2>
+      <div className='flex flex-wrap gap-2 justify-center'>
         {skill.tags.map((tag, i) => (
           <span
             key={i}
@@ -25,11 +33,19 @@ const SkillCard: React.FC<{ skill: Skill }> = ({ skill }) => {
           </span>
         ))}
       </div>
-      <button className='w-40 p-2 absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#3178C6] text-white rounded-lg font-semibold shadow hover:bg-[#225a8c] transition cursor-pointer'>
-        Request Exchange
-      </button>
+     
+        <button type='button'
+          className={`w-40 p-2 absolute bottom-4 left-1/2 -translate-x-1/2 rounded-lg font-semibold shadow transition cursor-pointer
+            ${isSelected
+              ? 'bg-green-500 text-white hover:bg-green-600'
+              : 'bg-[#3178C6] text-white hover:bg-[#225a8c]'}
+          `}
+        >
+          {isSelected ? 'Selected' : 'Select'}
+        </button>
+   
     </div>
-  )
-}
+  );
+};
 
 export default SkillCard;
