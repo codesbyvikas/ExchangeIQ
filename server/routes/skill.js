@@ -1,7 +1,7 @@
 // routes/skills.js
 const express = require("express");
 const Skill = require("../models/skill");
-const skillsData = require("../data/skill");
+// const skillsData = require("../data/skill");
 const router = express.Router();
 
 // Seed all skills
@@ -17,7 +17,7 @@ const router = express.Router();
 
 router.post("/add", async (req, res) => {
   try {
-    const newSkills = req.body; // expecting array of skills
+    const newSkills = req.body; 
     if (!Array.isArray(newSkills)) {
       return res.status(400).json({ error: "Expected an array of skills." });
     }
@@ -38,7 +38,7 @@ router.post("/add", async (req, res) => {
 });
 
 // Get all skills
-router.get("/skills", async (req, res) => {
+router.get("/all", async (req, res) => {
   try {
     const skills = await Skill.find();
     res.status(200).json(skills);
