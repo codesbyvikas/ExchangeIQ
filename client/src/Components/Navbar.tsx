@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Logo from '../assets/logopng.png'
 import Avatar from '../assets/Avatar.png'
 import { useEffect, useState } from 'react'
@@ -6,9 +6,16 @@ import profileApiHelper from '../utils/api/profileApi'
 import type { UserType } from '../utils/types/user'
 
 
-
 const Navbar = () => {
   const [user, setUser] = useState<UserType | null>(null);
+  const navigate = useNavigate();
+  const handleClick = () => {
+    if (user) {
+      navigate('/profile');
+    } else {
+      navigate('/auth');
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -30,7 +37,12 @@ const Navbar = () => {
         {/* Logo and Name vertically stacked */}
         <div className='pl-4 flex flex-col'>
           <img className='w-60 h-20 object-cover' src={Logo} alt="ExchangeIQ Logo" />
-          <h2 className="font-bold  ml-10 text-xl text-[#3178C6] mb-2"><span>{user ? `Hello, ${user.name}` : 'please login'}</span></h2>
+           <h2
+              className="font-bold ml-10 text-xl text-[#3178C6] mb-2 cursor-pointer hover:underline transition"
+              onClick={handleClick}
+            >
+              <span>{user ? `Hello, ${user.name}` : 'Please login'}</span>
+            </h2>
         </div>
 
         <div className="rounded-2xl shadow-lg  cursor-pointer ">

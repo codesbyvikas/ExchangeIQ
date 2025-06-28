@@ -17,8 +17,10 @@ const LearnSkillSelectPage = () => {
   const [isLoading, setIsLoadig] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedLearnSkillNames, setSelectedLearnSkillNames] = useState<string[]>([]);
+  const [selectedLearnSkillIds, setSelectedLearnSkillIds] = useState<string[]>([]);
+  const [disabledSkillIds, setDisabledSkillIds] = useState<string[]>([]);
   const [selectedLearnSkills, setLearnSelectedSkills] = useState<number>(0);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,6 +29,14 @@ const LearnSkillSelectPage = () => {
       try {
         const data = await skillApiHelper.getAllSkills();
         setSkills(data);
+        const userProfile = await profileApiHelper.getProfile();
+        const userSkillsToLearn = userProfile.skillsToLearn;
+        
+
+        
+        setSelectedLearnSkillIds(userSkillsToLearn);
+        setDisabledSkillIds(userSkillsToLearn);
+        setLearnSelectedSkills(userSkillsToLearn.length);
         setIsLoadig(false);
       } catch (error) {
         console.error('Error loading skills:', error);
@@ -60,14 +70,16 @@ const LearnSkillSelectPage = () => {
     return matchesSearch && matchesTags;
   });
 
-  const handleSelectedSkills = (skillName: string) => {
-    setSelectedLearnSkillNames((prev) => {
-      if (prev.includes(skillName)) {
+  const handleSelectedSkills = (skillId: string) => {
+    if (disabledSkillIds.includes(skillId)) return; // Prevent removing already selected
+
+    setSelectedLearnSkillIds((prev) => {
+      if (prev.includes(skillId)) {
         setLearnSelectedSkills((count) => count - 1);
-        return prev.filter((name) => name !== skillName);
+        return prev.filter((id) => id !== skillId);
       } else {
         setLearnSelectedSkills((count) => count + 1);
-        return [...prev, skillName];
+        return [...prev, skillId];
       }
     });
   };
@@ -76,7 +88,7 @@ const LearnSkillSelectPage = () => {
     e.preventDefault();
     try {
       await profileApiHelper.profileUpdate({
-        learnSkills: selectedLearnSkillNames,
+        learnSkills: selectedLearnSkillIds,
       });
       navigate('/profile/skills/teach');
     } catch (err: any) {
@@ -155,19 +167,21 @@ const LearnSkillSelectPage = () => {
 
           <div className="skills grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 py-4 px-2">
             {filteredSkills.length === 0 ? (
-              <div className="text-gray-400 text-center w-full p-39 m">No skills found.</div>
+              <div className="text-gray-400 text-center w-full p-39 m">Unable to load the Skills</div>
             ) : (
               filteredSkills.map((skill, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => handleSelectedSkills(skill.name)}
-                  className="cursor-pointer"
-                >
-                  <SkillCard
-                    skill={{ ...skill }}
-                    isSelected={selectedLearnSkillNames.includes(skill.name)}
-                  />
-                </div>
+                skill._id ? (
+                  <div
+                    key={idx}
+                    onClick={() => handleSelectedSkills(skill._id)}
+                    className="cursor-pointer"
+                  >
+                    <SkillCard
+                      skill={{ ...skill }}
+                      isSelected={selectedLearnSkillIds.includes(skill._id)}
+                    />
+                  </div>
+                ) : null
               ))
             )}
           </div>

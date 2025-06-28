@@ -15,8 +15,9 @@ const TeachSkillSelectionPage = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [search, setSearch] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedTeachSkillNames, setSelectedTeachSkillNames] = useState<string[]>([]);
+  const [selectedTeachSkillIds, setSelectedTeachSkillIds] = useState<string[]>([]);
   const [selectedTeachSkills, setTeachSelectedSkills] = useState<number>(0);
+  const [userSkillsToTeach, setUserSkillsToTeach] = useState<string[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,6 +25,11 @@ const TeachSkillSelectionPage = () => {
       try {
         const data = await skillApiHelper.getAllSkills();
         setSkills(data);
+        const userProfile = await profileApiHelper.getProfile();
+        const userSkills = userProfile.skillsToTeach;
+        setSelectedTeachSkillIds(userSkills);
+        setUserSkillsToTeach(userSkills);
+        setTeachSelectedSkills(userSkills.length);
       } catch (error) {
         console.error('Error loading skills:', error);
       }
@@ -55,14 +61,16 @@ const TeachSkillSelectionPage = () => {
     return matchesSearch && matchesTags;
   });
 
-  const handleSelectedSkills = (skillName: string) => {
-    setSelectedTeachSkillNames((prev) => {
-      if (prev.includes(skillName)) {
+  const handleSelectedSkills = (skillId: string | undefined) => {
+    if (!skillId) return;
+
+    setSelectedTeachSkillIds((prev) => {
+      if (prev.includes(skillId)) {
         setTeachSelectedSkills((count) => count - 1);
-        return prev.filter((name) => name !== skillName);
+        return prev.filter((id) => id !== skillId);
       } else {
         setTeachSelectedSkills((count) => count + 1);
-        return [...prev, skillName];
+        return [...prev, skillId];
       }
     });
   };
@@ -71,7 +79,7 @@ const TeachSkillSelectionPage = () => {
     e.preventDefault();
     try {
       await profileApiHelper.profileUpdate({
-        teachSkills: selectedTeachSkillNames,
+        teachSkills: selectedTeachSkillIds,
       });
       navigate('/');
     } catch (err: any) {
@@ -86,7 +94,7 @@ const TeachSkillSelectionPage = () => {
     <div className="w-full px-4 sm:px-6 md:px-10 h-full flex justify-center items-center bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
       <form
         method="post"
-        className="w-full max-w-6xl mt-2 mb-1 mb-10 rounded-3xl shadow-lg overflow-y-auto bg-white shadow-2xl px-4 sm:px-6 md:px-10 py-8 flex flex-col items-center"
+        className="w-full max-w-6xl mt-2 mb-10 rounded-3xl shadow-lg overflow-y-auto bg-white shadow-2xl px-4 sm:px-6 md:px-10 py-8 flex flex-col items-center"
       >
         <div className="w-full h-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4">
@@ -145,17 +153,18 @@ const TeachSkillSelectionPage = () => {
               <div className="text-gray-400 text-center w-full p-39 m">No skills found.</div>
             ) : (
               filteredSkills.map((skill, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => handleSelectedSkills(skill.name)}
-                  className="cursor-pointer"
-                >
-                  <SkillCard
-                    skill={{ ...skill }}
-                    isSelected={selectedTeachSkillNames.includes(skill.name)}
-                  />
-                </div>
-                
+                skill._id ? (
+                  <div
+                    key={idx}
+                    onClick={() => handleSelectedSkills(skill._id)}
+                    className="cursor-pointer"
+                  >
+                    <SkillCard
+                      skill={{ ...skill }}
+                      isSelected={selectedTeachSkillIds.includes(skill._id)}
+                    />
+                  </div>
+                ) : null
               ))
             )}
           </div>
