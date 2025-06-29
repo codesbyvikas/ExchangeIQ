@@ -13,15 +13,22 @@ const getAllTags = (skills: Skill[]): string[] => {
   return Array.from(tags);
 };
 
-const LearnSkillSelectPage = () => {
+interface LearnSkillSelectPageProps {
+  selectedSkillIds: string[];
+  setSelectedSkillIds: React.Dispatch<React.SetStateAction<string[]>>;
+  excludeSkillIds: string[];
+}
+
+const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
+  selectedSkillIds,
+  setSelectedSkillIds,
+  excludeSkillIds
+}) => {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoadig] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedLearnSkillIds, setSelectedLearnSkillIds] = useState<string[]>([]);
   const [disabledSkillIds, setDisabledSkillIds] = useState<string[]>([]);
-  const [selectedLearnSkills, setLearnSelectedSkills] = useState<number>(0);
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,13 +38,9 @@ const LearnSkillSelectPage = () => {
         const data = await skillApiHelper.getAllSkills();
         setSkills(data);
         const userProfile = await profileApiHelper.getSelfProfile();
-        const userSkillsToLearn = userProfile.skillsToLearn;
-        
-
-        
-        setSelectedLearnSkillIds(userSkillsToLearn);
+        const userSkillsToLearn = userProfile.skillsToLearn || [];
+        setSelectedSkillIds(userSkillsToLearn); // sync with parent
         setDisabledSkillIds(userSkillsToLearn);
-        setLearnSelectedSkills(userSkillsToLearn.length);
         setIsLoadig(false);
       } catch (error) {
         console.error('Error loading skills:', error);
@@ -65,53 +68,45 @@ const LearnSkillSelectPage = () => {
   };
 
   const filteredSkills = skills.filter((skill) => {
+    const notExcluded = !excludeSkillIds.includes(skill._id);
     const matchesSearch = skill.name.toLowerCase().includes(search.toLowerCase());
     const matchesTags =
       selectedTags.length === 0 || skill.tags.some((tag) => selectedTags.includes(tag));
-    return matchesSearch && matchesTags;
+    return notExcluded && matchesSearch && matchesTags;
   });
 
   const handleSelectedSkills = (skillId: string) => {
-      setSelectedLearnSkillIds((prev) => {
-        if (prev.includes(skillId)) {
-          setLearnSelectedSkills((count) => count - 1);
-          return prev.filter((id) => id !== skillId);
-        } else {
-          setLearnSelectedSkills((count) => count + 1);
-          return [...prev, skillId];
-        }
-      });
-    };
-
-
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  try {
-    setIsLoadig(true);
-    await profileApiHelper.profileUpdate({
-      learnSkills: selectedLearnSkillIds,
-    });
-
-    // 🔁 Create post for each newly selected skill
-    const newSkillIds = selectedLearnSkillIds.filter(
-      (skillId) => !disabledSkillIds.includes(skillId)
+    setSelectedSkillIds((prev) =>
+      prev.includes(skillId) ? prev.filter((id) => id !== skillId) : [...prev, skillId]
     );
+  };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsLoadig(true);
+      await profileApiHelper.profileUpdate({
+        learnSkills: selectedSkillIds,
+      });
 
-    for (const skillId of newSkillIds) {
-      await postApiHelper.createLearnPost(skillId);
+      // 🔁 Create post for each newly selected skill
+      const newSkillIds = selectedSkillIds.filter(
+        (skillId) => !disabledSkillIds.includes(skillId)
+      );
+
+      for (const skillId of newSkillIds) {
+        await postApiHelper.createLearnPost(skillId);
+      }
+      setIsLoadig(false);
+
+      navigate('/profile/skills/teach');
+    } catch (err: any) {
+      console.error('Failed to update skills:', err);
+      if (err?.error === 'Unauthorized') {
+        navigate('/auth');
+      }
     }
-    setIsLoadig(false);
-
-    navigate('/profile/skills/teach');
-  } catch (err: any) {
-    console.error('Failed to update skills:', err);
-    if (err?.error === 'Unauthorized') {
-      navigate('/auth');
-    }
-  }
-};
-
+  };
 
   if (isLoading) {
     return (
@@ -125,7 +120,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     <div className="w-full px-4 sm:px-6 md:px-10 h-full flex justify-center items-center bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
       <form
         method="post"
-        className="w-full max-w-6xl mt-2 mb-10 rounded-3xl shadow-lg overflow-y-auto bg-white shadow-2xl px-4 sm:px-6 md:px-10 py-8 flex flex-col items-center"
+        className="w-full max-w-6xl mt-2 mb-10 rounded-3xl overflow-y-auto bg-white shadow-2xl px-4 sm:px-6 md:px-10 py-8 flex flex-col items-center"
       >
         <div className="w-full h-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4">
@@ -138,7 +133,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 onClick={handleSubmit}
                 className="w-full sm:w-32 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer font-medium hover:bg-green-700 transition"
               >
-                Submit
+                Next
               </button>
             </div>
           </div>
@@ -176,7 +171,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           </div>
 
           <h4 className="w-full flex justify-end mt-3 text-sm sm:text-base">
-            Selected Skills: {selectedLearnSkills}
+            Selected Skills: {selectedSkillIds.length}
           </h4>
 
           <div className="skills grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 py-4 px-2">
@@ -192,7 +187,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   >
                     <SkillCard
                       skill={{ ...skill }}
-                      isSelected={selectedLearnSkillIds.includes(skill._id)}
+                      isSelected={selectedSkillIds.includes(skill._id)}
                     />
                   </div>
                 ) : null

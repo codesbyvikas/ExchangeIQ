@@ -12,15 +12,22 @@ const getAllTags = (skills: Skill[]): string[] => {
   skills.forEach((skill) => skill.tags.forEach((tag) => tags.add(tag)));
   return Array.from(tags);
 };
+interface TeachSkillSelectionPageProps {
+  selectedSkillIds: string[];
+  setSelectedSkillIds: React.Dispatch<React.SetStateAction<string[]>>;
+  excludeSkillIds: string[];
+}
 
-const TeachSkillSelectionPage = () => {
+const TeachSkillSelectionPage: React.FC<TeachSkillSelectionPageProps> = ({
+  selectedSkillIds,
+  setSelectedSkillIds,
+  excludeSkillIds
+}) => {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoadig] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedTeachSkillIds, setSelectedTeachSkillIds] = useState<string[]>([]);
   const [disabledSkillIds, setDisabledSkillIds] = useState<string[]>([]);
-  const [selectedTeachSkills, setTeachSelectedSkills] = useState<number>(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,9 +38,8 @@ const TeachSkillSelectionPage = () => {
         setSkills(data);
         const userProfile = await profileApiHelper.getSelfProfile();
         const userSkills = userProfile.skillsToTeach;
-        setSelectedTeachSkillIds(userSkills);
-        setDisabledSkillIds(userSkills); // 👈 used to detect new additions
-        setTeachSelectedSkills(userSkills.length);
+        setSelectedSkillIds(userSkills);
+        setDisabledSkillIds(userSkills);
         setIsLoadig(false);
       } catch (error) {
         console.error('Error loading skills:', error);
@@ -60,24 +66,19 @@ const TeachSkillSelectionPage = () => {
   };
 
   const filteredSkills = skills.filter((skill) => {
+    const notExcluded = !excludeSkillIds.includes(skill._id);
     const matchesSearch = skill.name.toLowerCase().includes(search.toLowerCase());
     const matchesTags =
       selectedTags.length === 0 || skill.tags.some((tag) => selectedTags.includes(tag));
-    return matchesSearch && matchesTags;
+    return notExcluded && matchesSearch && matchesTags;
   });
 
+  // Use only the prop state for selection
   const handleSelectedSkills = (skillId: string | undefined) => {
     if (!skillId) return;
-
-    setSelectedTeachSkillIds((prev) => {
-      if (prev.includes(skillId)) {
-        setTeachSelectedSkills((count) => count - 1);
-        return prev.filter((id) => id !== skillId);
-      } else {
-        setTeachSelectedSkills((count) => count + 1);
-        return [...prev, skillId];
-      }
-    });
+    setSelectedSkillIds((prev) =>
+      prev.includes(skillId) ? prev.filter((id) => id !== skillId) : [...prev, skillId]
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,16 +86,16 @@ const TeachSkillSelectionPage = () => {
     try {
       setIsLoadig(true);
       await profileApiHelper.profileUpdate({
-        teachSkills: selectedTeachSkillIds,
+        teachSkills: selectedSkillIds,
       });
 
       // 🆕 Create posts for new additions only
-      const newTeachSkillIds = selectedTeachSkillIds.filter(
+      const newTeachSkillIds = selectedSkillIds.filter(
         (skillId) => !disabledSkillIds.includes(skillId)
       );
 
       for (const skillId of newTeachSkillIds) {
-        await postApiHelper.createTeachPost(skillId); // ✅ use teach post creator
+        await postApiHelper.createTeachPost(skillId);
       }
       setIsLoadig(false);
 
@@ -119,7 +120,7 @@ const TeachSkillSelectionPage = () => {
     <div className="w-full px-4 sm:px-6 md:px-10 h-full flex justify-center items-center bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
       <form
         method="post"
-        className="w-full max-w-6xl mt-2 mb-10 rounded-3xl shadow-lg overflow-y-auto bg-white shadow-2xl px-4 sm:px-6 md:px-10 py-8 flex flex-col items-center"
+        className="w-full max-w-6xl mt-2 mb-10 rounded-3xl overflow-y-auto bg-white shadow-2xl px-4 sm:px-6 md:px-10 py-8 flex flex-col items-center"
       >
         <div className="w-full h-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4">
@@ -132,7 +133,7 @@ const TeachSkillSelectionPage = () => {
                 onClick={handleSubmit}
                 className="w-full sm:w-32 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer font-medium hover:bg-green-700 transition"
               >
-                Next
+                Sumbit
               </button>
             </div>
           </div>
@@ -170,7 +171,7 @@ const TeachSkillSelectionPage = () => {
           </div>
 
           <h4 className="w-full flex justify-end mt-3 text-sm sm:text-base">
-            Selected Skills: {selectedTeachSkills}
+            Selected Skills: {selectedSkillIds.length}
           </h4>
 
           <div className="skills grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 py-4 px-2">
@@ -186,7 +187,7 @@ const TeachSkillSelectionPage = () => {
                   >
                     <SkillCard
                       skill={{ ...skill }}
-                      isSelected={selectedTeachSkillIds.includes(skill._id)}
+                      isSelected={selectedSkillIds.includes(skill._id)}
                     />
                   </div>
                 ) : null
