@@ -44,7 +44,7 @@ const profileApiHelper = {
     }
   },
 
-  getProfile: async (): Promise<UserType> => {
+  getSelfProfile: async (): Promise<UserType> => {
     try {
       const res = await axios.get<UpdatedUser>(`${API_URL}/profile/me`, {
         withCredentials: true,
@@ -54,8 +54,23 @@ const profileApiHelper = {
       console.error("Error fetching profile:", error.response?.data || error.message);
       throw error.response?.data || { error: "Something went wrong" };
     }
+  },
+
+
+
+  getUserById: async (id: string): Promise<UserType> => {
+    try {
+      const res = await axios.get(`/api/user/${id}`);
+      return res.data as UserType;
+    } catch (err) {
+      console.error(`Error fetching user with ID ${id}:`, err);
+      throw err;
+    }
   }
+
 };
+
+
 
 export default  profileApiHelper 
 ;

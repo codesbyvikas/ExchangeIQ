@@ -20,7 +20,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchUserData = async () => {
         try {
-          const data = await profileApiHelper.getProfile();
+          const data = await profileApiHelper.getSelfProfile();
           setUser(data);
         } catch (error) {
           console.error('Failed to fetch user:', error);

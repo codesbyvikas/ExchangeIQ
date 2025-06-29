@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Skill } from '../utils/types/skill';
 import skillApiHelper from '../utils/api/skillApiHelper';
 import profileApiHelper from '../utils/api/profileApi';
+import postApiHelper from '../utils/api/postApiHelper'; // ✅ import teach post helper
 import { useNavigate } from 'react-router-dom';
 import SkillCard from '../Components/SkillCard';
 
@@ -16,8 +17,8 @@ const TeachSkillSelectionPage = () => {
   const [search, setSearch] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedTeachSkillIds, setSelectedTeachSkillIds] = useState<string[]>([]);
+  const [disabledSkillIds, setDisabledSkillIds] = useState<string[]>([]);
   const [selectedTeachSkills, setTeachSelectedSkills] = useState<number>(0);
-  const [userSkillsToTeach, setUserSkillsToTeach] = useState<string[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,10 +26,10 @@ const TeachSkillSelectionPage = () => {
       try {
         const data = await skillApiHelper.getAllSkills();
         setSkills(data);
-        const userProfile = await profileApiHelper.getProfile();
+        const userProfile = await profileApiHelper.getSelfProfile();
         const userSkills = userProfile.skillsToTeach;
         setSelectedTeachSkillIds(userSkills);
-        setUserSkillsToTeach(userSkills);
+        setDisabledSkillIds(userSkills); // 👈 used to detect new additions
         setTeachSelectedSkills(userSkills.length);
       } catch (error) {
         console.error('Error loading skills:', error);
@@ -81,6 +82,16 @@ const TeachSkillSelectionPage = () => {
       await profileApiHelper.profileUpdate({
         teachSkills: selectedTeachSkillIds,
       });
+
+      // 🆕 Create posts for new additions only
+      const newTeachSkillIds = selectedTeachSkillIds.filter(
+        (skillId) => !disabledSkillIds.includes(skillId)
+      );
+
+      for (const skillId of newTeachSkillIds) {
+        await postApiHelper.createTeachPost(skillId); // ✅ use teach post creator
+      }
+
       navigate('/');
     } catch (err: any) {
       console.error('Failed to update skills:', err);
@@ -126,9 +137,9 @@ const TeachSkillSelectionPage = () => {
                 key={idx}
                 onClick={() => handleTagClick(tag)}
                 className={`cursor-pointer px-3 py-1 rounded-full border text-xs transition 
-                ${selectedTags.includes(tag)
-                  ? 'bg-[#3178C6] text-white border-[#3178C6]'
-                  : 'bg-[#f0f4f8] text-[#3178C6] border-[#e0f2ff] hover:bg-[#3178C6] hover:text-white'}`}
+                  ${selectedTags.includes(tag)
+                    ? 'bg-[#3178C6] text-white border-[#3178C6]'
+                    : 'bg-[#f0f4f8] text-[#3178C6] border-[#e0f2ff] hover:bg-[#3178C6] hover:text-white'}`}
               >
                 {tag}
               </span>

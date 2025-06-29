@@ -5,7 +5,7 @@ import Home from './Pages/HomePage';
 import Profile from './Pages/ProfilePage';
 import LearnSkillSelectPage from "./Pages/LearnSkillSelectionPage";
 import TeachSkillSelectionPage from "./Pages/TeachSkillSelectionPage";
-import LoginRedirectHandler from "./utils/LoginHandler";
+import LoginRedirectHandler from "./utils/handler/LoginHandler";
 
 const App = () => {
   return (

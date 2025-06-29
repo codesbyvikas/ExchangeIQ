@@ -5,6 +5,7 @@ import profileApiHelper from '../utils/api/profileApi';
 import { useNavigate } from 'react-router-dom';
 import SkillCard from '../Components/SkillCard';
 import { RotateLoader } from 'react-spinners';
+import postApiHelper from '../utils/api/postApiHelper';
 
 const getAllTags = (skills: Skill[]): string[] => {
   const tags = new Set<string>();
@@ -29,7 +30,7 @@ const LearnSkillSelectPage = () => {
       try {
         const data = await skillApiHelper.getAllSkills();
         setSkills(data);
-        const userProfile = await profileApiHelper.getProfile();
+        const userProfile = await profileApiHelper.getSelfProfile();
         const userSkillsToLearn = userProfile.skillsToLearn;
         
 
@@ -71,33 +72,43 @@ const LearnSkillSelectPage = () => {
   });
 
   const handleSelectedSkills = (skillId: string) => {
-    if (disabledSkillIds.includes(skillId)) return; // Prevent removing already selected
-
-    setSelectedLearnSkillIds((prev) => {
-      if (prev.includes(skillId)) {
-        setLearnSelectedSkills((count) => count - 1);
-        return prev.filter((id) => id !== skillId);
-      } else {
-        setLearnSelectedSkills((count) => count + 1);
-        return [...prev, skillId];
-      }
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await profileApiHelper.profileUpdate({
-        learnSkills: selectedLearnSkillIds,
+      setSelectedLearnSkillIds((prev) => {
+        if (prev.includes(skillId)) {
+          setLearnSelectedSkills((count) => count - 1);
+          return prev.filter((id) => id !== skillId);
+        } else {
+          setLearnSelectedSkills((count) => count + 1);
+          return [...prev, skillId];
+        }
       });
-      navigate('/profile/skills/teach');
-    } catch (err: any) {
-      console.error('Failed to update skills:', err);
-      if (err?.error === 'Unauthorized') {
-        navigate('/auth');
-      }
+    };
+
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    await profileApiHelper.profileUpdate({
+      learnSkills: selectedLearnSkillIds,
+    });
+
+    // 🔁 Create post for each newly selected skill
+    const newSkillIds = selectedLearnSkillIds.filter(
+      (skillId) => !disabledSkillIds.includes(skillId)
+    );
+
+    for (const skillId of newSkillIds) {
+      await postApiHelper.createLearnPost(skillId);
     }
-  };
+
+    navigate('/profile/skills/teach');
+  } catch (err: any) {
+    console.error('Failed to update skills:', err);
+    if (err?.error === 'Unauthorized') {
+      navigate('/auth');
+    }
+  }
+};
+
 
   if (isLoading) {
     return (
@@ -124,7 +135,7 @@ const LearnSkillSelectPage = () => {
                 onClick={handleSubmit}
                 className="w-full sm:w-32 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer font-medium hover:bg-green-700 transition"
               >
-                Next
+                Submit
               </button>
             </div>
           </div>

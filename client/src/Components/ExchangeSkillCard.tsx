@@ -1,7 +1,7 @@
 import React from 'react'
-import type { JSX } from 'react';
 import Avatar from '../assets/Avatar.png'
 import { Link } from 'react-router-dom';
+import type { JSX } from 'react';
 
 // Skill type with icon as JSX.Element
 export interface Skill {
