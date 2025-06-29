@@ -47,4 +47,20 @@ router.get("/all", async (req, res) => {
   }
 });
 
+router.get('/:id', async (req, res) => {
+  try {
+    const skill = await Skill.findById(req.params.id);
+
+    if (!skill) {
+      return res.status(404).json({ error: 'Skill not found' });
+    }
+
+    res.status(200).json(skill);
+  } catch (err) {
+    console.error('Error fetching skill by ID:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
 module.exports = router;
