@@ -87,6 +87,7 @@ const LearnSkillSelectPage = () => {
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   try {
+    setIsLoadig(true);
     await profileApiHelper.profileUpdate({
       learnSkills: selectedLearnSkillIds,
     });
@@ -96,9 +97,11 @@ const handleSubmit = async (e: React.FormEvent) => {
       (skillId) => !disabledSkillIds.includes(skillId)
     );
 
+
     for (const skillId of newSkillIds) {
       await postApiHelper.createLearnPost(skillId);
     }
+    setIsLoadig(false);
 
     navigate('/profile/skills/teach');
   } catch (err: any) {

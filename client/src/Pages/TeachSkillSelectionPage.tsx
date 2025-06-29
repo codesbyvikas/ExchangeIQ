@@ -5,6 +5,7 @@ import profileApiHelper from '../utils/api/profileApi';
 import postApiHelper from '../utils/api/postApiHelper'; // ✅ import teach post helper
 import { useNavigate } from 'react-router-dom';
 import SkillCard from '../Components/SkillCard';
+import { RotateLoader } from 'react-spinners';
 
 const getAllTags = (skills: Skill[]): string[] => {
   const tags = new Set<string>();
@@ -14,6 +15,7 @@ const getAllTags = (skills: Skill[]): string[] => {
 
 const TeachSkillSelectionPage = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [isLoading, setIsLoadig] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedTeachSkillIds, setSelectedTeachSkillIds] = useState<string[]>([]);
@@ -24,6 +26,7 @@ const TeachSkillSelectionPage = () => {
   useEffect(() => {
     const fetchSkills = async () => {
       try {
+        setIsLoadig(true);
         const data = await skillApiHelper.getAllSkills();
         setSkills(data);
         const userProfile = await profileApiHelper.getSelfProfile();
@@ -31,6 +34,7 @@ const TeachSkillSelectionPage = () => {
         setSelectedTeachSkillIds(userSkills);
         setDisabledSkillIds(userSkills); // 👈 used to detect new additions
         setTeachSelectedSkills(userSkills.length);
+        setIsLoadig(false);
       } catch (error) {
         console.error('Error loading skills:', error);
       }
@@ -79,6 +83,7 @@ const TeachSkillSelectionPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setIsLoadig(true);
       await profileApiHelper.profileUpdate({
         teachSkills: selectedTeachSkillIds,
       });
@@ -91,6 +96,7 @@ const TeachSkillSelectionPage = () => {
       for (const skillId of newTeachSkillIds) {
         await postApiHelper.createTeachPost(skillId); // ✅ use teach post creator
       }
+      setIsLoadig(false);
 
       navigate('/');
     } catch (err: any) {
@@ -100,6 +106,14 @@ const TeachSkillSelectionPage = () => {
       }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
+        <RotateLoader color="#3178C6" size={18} />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full px-4 sm:px-6 md:px-10 h-full flex justify-center items-center bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">

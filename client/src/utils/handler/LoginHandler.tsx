@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { RotateLoader } from "react-spinners";
 
 const LoginRedirectHandler = () => {
   const navigate = useNavigate();
@@ -47,8 +48,8 @@ const LoginRedirectHandler = () => {
   }, [navigate]);
 
   return (
-    <div className="h-screen w-full flex items-center justify-center text-gray-600">
-      <p>Checking your profile…</p>
+     <div className="flex items-center justify-center h-screen bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
+        <RotateLoader color="#3178C6" size={18} />
     </div>
   );
 };
