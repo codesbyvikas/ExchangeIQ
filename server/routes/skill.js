@@ -1,19 +1,19 @@
 // routes/skills.js
 const express = require("express");
 const Skill = require("../models/skill");
-// const skillsData = require("../data/skill");
+const skillsData = require("../data/skill");
 const router = express.Router();
 
 // Seed all skills
-// router.post("/skills/seed", async (req, res) => {
-//   try {
-//     await Skill.deleteMany(); // optional: clear previous
-//     const inserted = await Skill.insertMany(skillsData);
-//     res.status(201).json({ message: "Skills seeded", count: inserted.length });
-//   } catch (err) {
-//     res.status(500).json({ error: "Failed to seed skills", details: err });
-//   }
-// });
+router.post("/seed", async (req, res) => {
+  try {
+    await Skill.deleteMany(); // 
+    const inserted = await Skill.insertMany(skillsData);
+    res.status(201).json({ message: "Skills seeded", count: inserted.length });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to seed skills", details: err });
+  }
+});
 
 router.post("/add", async (req, res) => {
   try {

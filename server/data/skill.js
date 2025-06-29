@@ -50,6 +50,11 @@ const skillsData = [
   { name: "Blockchain Basics", tags: ["Tech", "Web3", "Remote"], iconUrl: "https://www.svgrepo.com/show/470589/blockchain.svg" },
   { name: "Linux Commands", tags: ["Tech", "CLI", "Productivity"], iconUrl: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/linux.svg" },
   { name: "VS Code Shortcuts", tags: ["Productivity", "Coding", "Remote"], iconUrl: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/visualstudiocode.svg" },
+  {name: "AR Filter Creation",tags: ["Tech", "Design", "Social Media"],iconUrl: "https://www.svgrepo.com/show/530604/glasses.svg"},
+  {name: "Voice Cloning Basics",tags: ["AI", "Audio", "Tech"],iconUrl: "https://www.svgrepo.com/show/489924/voice.svg"},
+  {name: "Making Memes",tags: ["Fun", "Creative", "Social"],iconUrl: "https://www.svgrepo.com/show/492553/laugh-and-cry.svg"},
+  {name: "Creating GIFs",tags: ["Creative", "Visuals", "Remote"],iconUrl: "https://www.svgrepo.com/show/270230/gif.svg"},
+  {name: "Digital Avatar Building",tags: ["Tech", "Design", "AI"],iconUrl: "https://www.svgrepo.com/show/446529/avatar.svg"}
 ];
 
 

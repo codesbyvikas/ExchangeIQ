@@ -48,4 +48,22 @@ router.get("/me", authCheck, async (req, res) => {
   }
 });
 
+router.get('/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select(
+      "name email photo profession skillsToTeach skillsToLearn createdAt"
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error("Error fetching user by ID:", err);
+    res.status(500).send("Internal server error");
+  }
+});
+
+
 module.exports = router;

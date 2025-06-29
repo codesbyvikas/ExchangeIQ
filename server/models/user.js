@@ -23,11 +23,11 @@ const userSchema = new mongoose.Schema({
     default:"",
   },
   skillsToTeach: {
-    type: [String],
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Skill' }],
     default: [],
   },
   skillsToLearn: {
-    type: [String],
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Skill' }],
     default: [],
   },
   createdAt: {

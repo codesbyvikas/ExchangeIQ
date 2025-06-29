@@ -15,7 +15,7 @@ require("./config/google");
 const authRoutes = require("./routes/auth");
 const profilRoutes = require("./routes/profile");
 const skillRoutes = require("./routes/skill")
-
+const postRoutes = require("./routes/post")
 // Initialize app
 const app = express();
 app.use(express.json());
@@ -63,7 +63,7 @@ app.get("/", (req, res) => {
 app.use("/auth", authRoutes);
 app.use("/profile", profilRoutes)
 app.use("/skill", skillRoutes);
-
+app.use("/post",postRoutes)
 // Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
