@@ -78,4 +78,43 @@ router.get('/teach/show', async (req, res) => {
   }
 });
 
+// DELETE LearnPost by ID
+router.delete('/learn/:id', authCheck, async (req, res) => {
+  const userId = req.user._id;
+  const postId = req.params.id;
+
+  try {
+    const post = await LearnPost.findOneAndDelete({ _id: postId, fromUser: userId });
+
+    if (!post) {
+      return res.status(404).json({ message: 'Learn post not found or unauthorized' });
+    }
+
+    return res.status(200).json({ message: 'Learn post deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting learn post:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// DELETE TeachPost by ID
+router.delete('/teach/:id', authCheck, async (req, res) => {
+  const userId = req.user._id;
+  const postId = req.params.id;
+
+  try {
+    const post = await TeachPost.findOneAndDelete({ _id: postId, fromUser: userId });
+
+    if (!post) {
+      return res.status(404).json({ message: 'Teach post not found or unauthorized' });
+    }
+
+    return res.status(200).json({ message: 'Teach post deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting teach post:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
 module.exports = router;

@@ -8,10 +8,14 @@ const postSchema = new mongoose.Schema({
     required: true
   },
   learnSkill: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjgiectId,
     ref: 'Skill',
     required: true
-  }
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 const LearnPost = mongoose.model('LearnPost', postSchema, 'learnposts');
