@@ -128,7 +128,7 @@ const Home = () => {
           {/* 🔁 Mutual Skill Exchanges */}
           {currentUser ? (
             <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-              <h4 className="font-semibold text-3xl mb-2">Mutual Skill Exchanges</h4>
+              <h4 className="font-semibold text-2xl mb-2">Mutual Skill Exchanges</h4>
               <div className="skills w-full flex gap-6 overflow-x-auto py-4">
                 {isLoadingExchange ? (
                   <PostLoader />
@@ -159,7 +159,7 @@ const Home = () => {
           {/* 📘 Learn Section */}
           {currentUser ? (
             <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-              <h4 className="font-semibold text-3xl mb-2">Skills You Can Learn</h4>
+              <h4 className="font-semibold text-2xl mb-2">Skills You Can Learn</h4>
               <div className="skills w-full flex gap-6 overflow-x-auto py-4">
                 {isLoadingLearn ? (
                   <PostLoader />

@@ -1,16 +1,16 @@
-import { Link } from 'react-router-dom';
+import { FaCheckCircle, FaExchangeAlt, FaTimesCircle } from "react-icons/fa";
+import { Link } from "react-router-dom";
 import Avatar from '../assets/Avatar.png';
-import { FaExchangeAlt, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
-const ExchangeInvitationCard = () => {
-  const date = new Date().toLocaleDateString('en-IN', {
+const InvitationCard = () => {
+
+    const date = new Date().toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
-
   return (
-    <div className="relative w-auto p-4 bg-white flex flex-row justify-center items-center gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2">
+     <div className="relative w-auto p-4 bg-white flex flex-row justify-center items-center gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2">
       
       {/*Date*/}
       <span className="absolute top-2 right-3 text-gray-400 text-xs">
@@ -20,9 +20,9 @@ const ExchangeInvitationCard = () => {
     
       <div className="flex flex-col items-center justify-center">
         <Link to={`profile/`}>
-          <img className="w-80 h-auto rounded-full" src={Avatar} alt="Avatar" />
+          <img className="rounded-full" src={Avatar} alt="Avatar" />
         </Link>
-        <h4 className="font-bold text-sm">Vikas Kewat</h4>
+        <h4 className="font-bold text-sm w-20">Vikas Kewat</h4>
         <h4 className="font-semibold text-xs">Student</h4>
       </div>
 
@@ -34,7 +34,7 @@ const ExchangeInvitationCard = () => {
         </span>
       </div>
 
-      <FaExchangeAlt size={80} color="blue" />
+      {/* <FaExchangeAlt size={80} color="blue" />
 
    
       <div className="flex flex-col items-center justify-center">
@@ -42,7 +42,7 @@ const ExchangeInvitationCard = () => {
         <span className="bg-[#f0f4f8] text-sm font-semibold text-[#3178C6] px-2 py-1 rounded">
           React
         </span>
-      </div>
+      </div> */}
 
       {/*Buttons */}
       <div className="flex flex-col gap-2 w-[110px]">
@@ -62,6 +62,6 @@ const ExchangeInvitationCard = () => {
       </div>
     </div>
   );
-};
+}
 
-export default ExchangeInvitationCard;
+export default InvitationCard
