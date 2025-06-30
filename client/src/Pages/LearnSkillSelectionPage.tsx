@@ -22,10 +22,10 @@ interface LearnSkillSelectPageProps {
 const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
   selectedSkillIds,
   setSelectedSkillIds,
-  excludeSkillIds
+  excludeSkillIds,
 }) => {
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [isLoading, setIsLoadig] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [disabledSkillIds, setDisabledSkillIds] = useState<string[]>([]);
@@ -33,18 +33,27 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
 
   useEffect(() => {
     const fetchSkills = async () => {
-      setIsLoadig(true);
+      setIsLoading(true);
       try {
         const data = await skillApiHelper.getAllSkills();
         setSkills(data);
+
         const userProfile = await profileApiHelper.getSelfProfile();
         const userSkillsToLearn = userProfile.skillsToLearn || [];
-        setSelectedSkillIds(userSkillsToLearn); // sync with parent
-        setDisabledSkillIds(userSkillsToLearn);
-        setIsLoadig(false);
+        const userSkillsToTeach = userProfile.skillsToTeach || [];
+
+        // Filter out skills user already teaches
+        const filteredSkillToLearn = userSkillsToLearn.filter(
+          (skillId) => !userSkillsToTeach.includes(skillId)
+        );
+
+        setSelectedSkillIds(filteredSkillToLearn);
+        setDisabledSkillIds(userSkillsToTeach);
+
+        setIsLoading(false);
       } catch (error) {
         console.error('Error loading skills:', error);
-        setIsLoadig(false);
+        setIsLoading(false);
       }
     };
     fetchSkills();
@@ -67,14 +76,6 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
     setSelectedTags([]);
   };
 
-  const filteredSkills = skills.filter((skill) => {
-    const notExcluded = !excludeSkillIds.includes(skill._id);
-    const matchesSearch = skill.name.toLowerCase().includes(search.toLowerCase());
-    const matchesTags =
-      selectedTags.length === 0 || skill.tags.some((tag) => selectedTags.includes(tag));
-    return notExcluded && matchesSearch && matchesTags;
-  });
-
   const handleSelectedSkills = (skillId: string) => {
     setSelectedSkillIds((prev) =>
       prev.includes(skillId) ? prev.filter((id) => id !== skillId) : [...prev, skillId]
@@ -84,21 +85,22 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      setIsLoadig(true);
-      await profileApiHelper.profileUpdate({
-        learnSkills: selectedSkillIds,
-      });
+      setIsLoading(true);
 
-      // 🔁 Create post for each newly selected skill
-      const newSkillIds = selectedSkillIds.filter(
+      
+      const validSkillIds = selectedSkillIds.filter(
         (skillId) => !disabledSkillIds.includes(skillId)
       );
 
-      for (const skillId of newSkillIds) {
+      await profileApiHelper.profileUpdate({
+        learnSkills: validSkillIds,
+      });
+
+      for (const skillId of validSkillIds) {
         await postApiHelper.createLearnPost(skillId);
       }
-      setIsLoadig(false);
 
+      setIsLoading(false);
       navigate('/profile/skills/teach');
     } catch (err: any) {
       console.error('Failed to update skills:', err);
@@ -116,10 +118,20 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
     );
   }
 
+  const visibleSkills = skills.filter((skill) => {
+    const isExcluded =
+      excludeSkillIds.includes(skill._id) || disabledSkillIds.includes(skill._id);
+    const matchesSearch = skill.name.toLowerCase().includes(search.toLowerCase());
+    const matchesTags =
+      selectedTags.length === 0 || skill.tags.some((tag) => selectedTags.includes(tag));
+    return !isExcluded && matchesSearch && matchesTags;
+  });
+
   return (
     <div className="w-full px-4 sm:px-6 md:px-10 h-full flex justify-center items-center bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
       <form
         method="post"
+        onSubmit={handleSubmit}
         className="w-full max-w-6xl mt-2 mb-10 rounded-3xl overflow-y-auto bg-white shadow-2xl px-4 sm:px-6 md:px-10 py-8 flex flex-col items-center"
       >
         <div className="w-full h-auto">
@@ -130,7 +142,6 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 type="submit"
-                onClick={handleSubmit}
                 className="w-full sm:w-32 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer font-medium hover:bg-green-700 transition"
               >
                 Next
@@ -175,22 +186,22 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
           </h4>
 
           <div className="skills grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 py-4 px-2">
-            {filteredSkills.length === 0 ? (
-              <div className="text-gray-400 text-center w-full p-39 m">Unable to load the Skills</div>
+            {visibleSkills.length === 0 ? (
+              <div className="text-gray-400 text-center w-full p-4">
+                No matching skills available.
+              </div>
             ) : (
-              filteredSkills.map((skill, idx) => (
-                skill._id ? (
-                  <div
-                    key={idx}
-                    onClick={() => handleSelectedSkills(skill._id)}
-                    className="cursor-pointer"
-                  >
-                    <SkillCard
-                      skill={{ ...skill }}
-                      isSelected={selectedSkillIds.includes(skill._id)}
-                    />
-                  </div>
-                ) : null
+              visibleSkills.map((skill) => (
+                <div
+                  key={skill._id}
+                  onClick={() => handleSelectedSkills(skill._id)}
+                  className="cursor-pointer"
+                >
+                  <SkillCard
+                    skill={skill}
+                    isSelected={selectedSkillIds.includes(skill._id)}
+                  />
+                </div>
               ))
             )}
           </div>

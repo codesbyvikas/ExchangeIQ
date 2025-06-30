@@ -3,12 +3,12 @@ export interface PostType {
   fromUser: {
     _id: string;
     name: string;
-    photo?: string; // Optional user avatar
+    photo?: string; 
   };
   learnSkill: {
     _id: string;
     name: string;
-    iconUrl?: string; // Optional skill icon (add this for frontend)
+    iconUrl?: string; 
   };
   createdAt: string;
   updatedAt: string;
