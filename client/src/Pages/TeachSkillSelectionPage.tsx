@@ -28,8 +28,10 @@ const TeachSkillSelectionPage: React.FC<TeachSkillSelectionPageProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [disabledSkillIds, setDisabledSkillIds] = useState<string[]>([]);
+  // const [disabledSkillIds, setDisabledSkillIds] = useState<string[]>([]);
   const [userSkillsToLearn, setUserSkillsToLearn] = useState<string[]>([]);
+  const [initialTeachSkills, setInitialTeachSkills] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string>('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,8 +50,10 @@ const TeachSkillSelectionPage: React.FC<TeachSkillSelectionPageProps> = ({
         );
 
         setSelectedSkillIds(validTeachSkills);
-        setDisabledSkillIds(skillsToTeach);
+        // setDisabledSkillIds(skillsToTeach);
         setUserSkillsToLearn(skillsToLearn);
+        setInitialTeachSkills(validTeachSkills);
+        setUserId(userProfile._id);
 
         setIsLoading(false);
       } catch (err) {
@@ -98,16 +102,31 @@ const TeachSkillSelectionPage: React.FC<TeachSkillSelectionPageProps> = ({
     try {
       setIsLoading(true);
 
-      const newTeachSkillIds = selectedSkillIds.filter(
-        (skillId) => !disabledSkillIds.includes(skillId)
+      const validSkillIds = selectedSkillIds.filter(
+        (skillId) => !userSkillsToLearn.includes(skillId)
       );
 
       await profileApiHelper.profileUpdate({
-        teachSkills: selectedSkillIds,
+        teachSkills: validSkillIds,
       });
 
-      for (const skillId of newTeachSkillIds) {
+      const newSkills = validSkillIds.filter(id => !initialTeachSkills.includes(id));
+      const removedSkills = initialTeachSkills.filter(id => !validSkillIds.includes(id));
+
+      for (const skillId of newSkills) {
         await postApiHelper.createTeachPost(skillId);
+      }
+
+      if (removedSkills.length > 0) {
+        const posts = await postApiHelper.getTeachPost();
+        for (const skillId of removedSkills) {
+          const postToDelete = posts.find(
+            (post) => post.learnSkill._id === skillId && post.fromUser._id === userId
+          );
+          if (postToDelete) {
+            await postApiHelper.deleteTeachPost(postToDelete._id);
+          }
+        }
       }
 
       setIsLoading(false);

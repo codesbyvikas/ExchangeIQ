@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import type { Skill } from '../utils/types/skill';
 import skillApiHelper from '../utils/api/skillApiHelper';
 import profileApiHelper from '../utils/api/profileApi';
+import postApiHelper from '../utils/api/postApiHelper';
 import { useNavigate } from 'react-router-dom';
 import SkillCard from '../Components/SkillCard';
 import { RotateLoader } from 'react-spinners';
-import postApiHelper from '../utils/api/postApiHelper';
 
 const getAllTags = (skills: Skill[]): string[] => {
   const tags = new Set<string>();
@@ -29,6 +29,8 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
   const [search, setSearch] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [disabledSkillIds, setDisabledSkillIds] = useState<string[]>([]);
+  const [initialLearnSkills, setInitialLearnSkills] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string>('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,14 +44,14 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
         const userSkillsToLearn = userProfile.skillsToLearn || [];
         const userSkillsToTeach = userProfile.skillsToTeach || [];
 
-        // Filter out skills user already teaches
         const filteredSkillToLearn = userSkillsToLearn.filter(
           (skillId) => !userSkillsToTeach.includes(skillId)
         );
 
         setSelectedSkillIds(filteredSkillToLearn);
         setDisabledSkillIds(userSkillsToTeach);
-
+        setInitialLearnSkills(filteredSkillToLearn);
+        setUserId(userProfile._id);
         setIsLoading(false);
       } catch (error) {
         console.error('Error loading skills:', error);
@@ -87,7 +89,6 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
     try {
       setIsLoading(true);
 
-      
       const validSkillIds = selectedSkillIds.filter(
         (skillId) => !disabledSkillIds.includes(skillId)
       );
@@ -96,8 +97,27 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
         learnSkills: validSkillIds,
       });
 
-      for (const skillId of validSkillIds) {
+      const newSkills = validSkillIds.filter(
+        (id) => !initialLearnSkills.includes(id)
+      );
+      const removedSkills = initialLearnSkills.filter(
+        (id) => !validSkillIds.includes(id)
+      );
+
+      for (const skillId of newSkills) {
         await postApiHelper.createLearnPost(skillId);
+      }
+
+      if (removedSkills.length > 0) {
+        const posts = await postApiHelper.getLearnPost();
+        for (const skillId of removedSkills) {
+          const postToDelete = posts.find(
+            (post) => post.learnSkill._id === skillId && post.fromUser._id === userId
+          );
+          if (postToDelete) {
+            await postApiHelper.deleteLearnPost(postToDelete._id);
+          }
+        }
       }
 
       setIsLoading(false);
@@ -163,9 +183,9 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
                 key={idx}
                 onClick={() => handleTagClick(tag)}
                 className={`cursor-pointer px-3 py-1 rounded-full border text-xs transition 
-                ${selectedTags.includes(tag)
-                  ? 'bg-[#3178C6] text-white border-[#3178C6]'
-                  : 'bg-[#f0f4f8] text-[#3178C6] border-[#e0f2ff] hover:bg-[#3178C6] hover:text-white'}`}
+                  ${selectedTags.includes(tag)
+                    ? 'bg-[#3178C6] text-white border-[#3178C6]'
+                    : 'bg-[#f0f4f8] text-[#3178C6] border-[#e0f2ff] hover:bg-[#3178C6] hover:text-white'}`}
               >
                 {tag}
               </span>
