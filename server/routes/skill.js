@@ -17,21 +17,30 @@ router.post("/seed", async (req, res) => {
 
 router.post("/add", async (req, res) => {
   try {
-    const newSkills = req.body; 
+    const newSkills = req.body;
     if (!Array.isArray(newSkills)) {
       return res.status(400).json({ error: "Expected an array of skills." });
     }
 
-    let insertedCount = 0;
+    const uniqueSkills = [];
+
     for (const skill of newSkills) {
-      const exists = await Skill.findOne({ name: skill.name });
+      if (!skill.name || !skill.tags || !skill.iconUrl) continue;
+
+      const exists = await Skill.findOne({ name: new RegExp(`^${skill.name}$`, 'i') });
       if (!exists) {
-        await Skill.create(skill);
-        insertedCount++;
+        uniqueSkills.push(skill);
       }
     }
 
-    res.status(200).json({ message: `${insertedCount} new skills added.` });
+    if (uniqueSkills.length > 0) {
+      await Skill.insertMany(uniqueSkills);
+    }
+
+    res.status(200).json({
+      message: `${uniqueSkills.length} new skills added.`,
+      skills: uniqueSkills.map(s => s.name),
+    });
   } catch (err) {
     res.status(500).json({ error: "Failed to add new skills", details: err });
   }

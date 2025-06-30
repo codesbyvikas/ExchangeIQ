@@ -8,7 +8,7 @@ const postSchema = new mongoose.Schema({
     required: true
   },
   learnSkill: {
-    type: mongoose.Schema.Types.ObjgiectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'Skill',
     required: true
   },
