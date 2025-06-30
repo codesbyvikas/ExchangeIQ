@@ -129,8 +129,7 @@ const Home = () => {
           {currentUser ? (
             <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
               <h4 className="font-semibold text-2xl mb-2">Mutual Skill Exchanges</h4>
-              <div className="skills w-full flex gap-6 overflow-x-auto py-4">
-                {isLoadingExchange ? (
+              <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">                {isLoadingExchange ? (
                   <PostLoader />
                 ) : exchangePosts.length === 0 ? (
                   <p className="text-gray-500">No mutual exchanges found yet.</p>
@@ -160,7 +159,7 @@ const Home = () => {
           {currentUser ? (
             <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
               <h4 className="font-semibold text-2xl mb-2">Skills You Can Learn</h4>
-              <div className="skills w-full flex gap-6 overflow-x-auto py-4">
+              <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
                 {isLoadingLearn ? (
                   <PostLoader />
                 ) : learnPosts.length === 0 ? (
@@ -183,11 +182,11 @@ const Home = () => {
             </div>
           ) : null}
 
-          {/* 📗 Teach Section */}
+          {/* Teach Section */}
           {currentUser ? (
             <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
               <h4 className="font-semibold text-3xl mb-2">Skills You Can Teach</h4>
-              <div className="skills w-full flex gap-6 overflow-x-auto py-4">
+              <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
                 {isLoadingTeach ? (
                   <PostLoader />
                 ) : teachPosts.length === 0 ? (
