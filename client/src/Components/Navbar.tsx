@@ -62,7 +62,7 @@ const Navbar = () => {
       <div className='w-full flex justify-center absolute top-5'>
         <ul className='overflow-hidden font-semibold bg-[#ffffffb0] rounded-lg flex'>
           <Link className='px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]' to="/"><li>Home</li></Link>
-          <Link className='px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]' to="/explore"><li>Explore</li></Link>
+          <Link className='px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]' to="/invitations"><li>Invitations</li></Link>
           <Link className='px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]' to="/friends"><li>Friends</li></Link>
           <Link className='px-6 py-2 hover:bg-[#3178C6] hover:text-white' to="/skills"><li>Skills</li></Link>
         </ul>

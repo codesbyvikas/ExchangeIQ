@@ -7,6 +7,7 @@ import LearnSkillSelectPage from "./Pages/LearnSkillSelectionPage";
 import TeachSkillSelectionPage from "./Pages/TeachSkillSelectionPage";
 import LoginRedirectHandler from "./utils/handler/LoginHandler";
 import { useState } from "react";
+import InvitationPage from "./Pages/InvitationPage";
 
 const App = () => {
   const [learnSkillIds, setLearnSkillIds] = useState<string[]>([]);
@@ -18,6 +19,7 @@ const App = () => {
         <Route path="/auth" element={<Signup />} />
         <Route path="/" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/invitations" element={<InvitationPage />} />
         <Route
           path="/profile/skills/learn"
           element={
