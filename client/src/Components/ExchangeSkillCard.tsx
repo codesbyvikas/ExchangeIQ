@@ -2,14 +2,14 @@ import React from 'react';
 import Avatar from '../assets/Avatar.png';
 import { Link } from 'react-router-dom';
 import type { JSX } from 'react';
-import invitationApiHelper from '../utils/api/invitationApiHelper';
+import { ClipLoader } from 'react-spinners';
 
 export interface Skill {
-  name: string;
-  icon: JSX.Element;
-  tags: string[];
   _id: string;
-  iconUrl?: string;
+  name: string;
+  tags: string[];
+  iconUrl: string;
+  icon?: JSX.Element;
 }
 
 export interface User {
@@ -18,30 +18,24 @@ export interface User {
   photo?: string;
 }
 
-interface ExchangeCardProps {
-  skill: Skill;         
-  exchangeFor: Skill;   
+export interface ExchangeCardProps {
+  skill: Skill;
+  exchangeFor: Skill;
   user: User;
+  onSendInvite: (
+    toUserId: string,
+    reqType: 'exchange',
+    skillOfferedId?: string,
+    skillRequestedId?: string
+  ) => void;
+  isLoading?: boolean;
 }
 
+const ExchangeSkillCard: React.FC<ExchangeCardProps> = ({ skill, exchangeFor, user, onSendInvite, isLoading }) => {
+  const handleClick = () => {
+    onSendInvite(user._id, 'exchange', exchangeFor._id, skill._id);
+  };
 
-
-const ExchangeSkillCard: React.FC<ExchangeCardProps> = ({ skill, exchangeFor, user }) => {
-
-  const sendRequest = async () =>{
-    try{
-      await invitationApiHelper.sendInvitation({
-        toUser: user._id,
-        reqType:"exchange",
-        skillOffered: exchangeFor._id,
-        skillRequested: skill._id,
-        
-      });
-      console.log("sent");
-    }catch (error) {
-      console.log("error", error)
-    }
-  }
   return (
     <div className='relative w-40 min-w-80 p-3 bg-white flex flex-col gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2'>
       <div className='flex flex-row items-center gap-2'>
@@ -65,9 +59,10 @@ const ExchangeSkillCard: React.FC<ExchangeCardProps> = ({ skill, exchangeFor, us
         </div>
 
         <button
-          onClick={sendRequest}
-          className='w-40 p-2 absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#3178C6] text-white rounded-lg font-semibold shadow hover:bg-[#225a8c] transition cursor-pointer'>
-          Request Exchange
+          onClick={handleClick}
+          disabled={isLoading}
+          className='w-40 p-2 absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#3178C6] text-white rounded-lg font-semibold shadow hover:bg-[#225a8c] transition cursor-pointer disabled:opacity-60'>
+          {isLoading ? <ClipLoader size={20} color='white' /> : 'Request Exchange'}
         </button>
       </div>
     </div>

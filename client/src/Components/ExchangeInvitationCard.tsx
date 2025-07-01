@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import Avatar from '../assets/Avatar.png';
 import { FaExchangeAlt, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
-import invitationApiHelper from '../utils/api/invitationApiHelper';
 
 const ExchangeInvitationCard = () => {
   const date = new Date().toLocaleDateString('en-IN', {
