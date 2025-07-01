@@ -7,6 +7,44 @@ import type { InvitationType } from '../utils/types/invitation';
 import invitationApiHelper from '../utils/api/invitationApiHelper';
 import profileApiHelper from '../utils/api/profileApi';
 
+// ✅ ALERT COMPONENT + STATE - Fixed type for onClose
+interface AlertProps {
+  alert: { show: boolean; type: 'success' | 'error'; message: string };
+  onClose: () => void;
+}
+
+const Alert = ({ alert, onClose }: AlertProps) => {
+  useEffect(() => {
+    if (alert.show) {
+      const timer = setTimeout(onClose, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert.show, onClose]);
+
+  if (!alert.show) return null;
+
+  return (
+    <div className="fixed top-[130px] left-1/2 transform -translate-x-1/2 z-50 w-11/12 max-w-md">
+      <div className={`p-4 text-sm rounded-lg shadow-lg border transition-all duration-300
+        ${alert.type === 'success' 
+          ? 'text-green-800 bg-green-50 border-green-200'
+          : 'text-red-800 bg-red-50 border-red-200'
+        }`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="font-medium">{alert.type === 'success' ? 'Success!' : 'Error!'}</span> {alert.message}
+          </div>
+          <button onClick={onClose}>
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const InvitationPage = () => {
   const [learnInvitations, setLearnInvitations] = useState<InvitationType[]>([]);
   const [teachInvitations, setTeachInvitations] = useState<InvitationType[]>([]);
@@ -14,11 +52,21 @@ const InvitationPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ ALERT STATE
+  const [alert, setAlert] = useState({ show: false, type: 'success' as 'success' | 'error', message: '' });
+
+  const showAlert = (type: 'success' | 'error', message: string) => {
+    setAlert({ show: true, type, message });
+  };
+
+  const hideAlert = () => {
+    setAlert({ show: false, type: 'success', message: '' });
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const currentUser = await profileApiHelper.getSelfProfile();
-
         const invitations = await invitationApiHelper.getUserInvitations();
         const filtered = invitations.filter(inv => inv.fromUser._id !== currentUser._id);
 
@@ -36,6 +84,23 @@ const InvitationPage = () => {
     fetchData();
   }, []);
 
+  // ✅ Handle Accept/Reject + Remove Card + Alert - Fixed to use "declined" instead of "rejected"
+  const handleStatusChange = async (id: string, status: 'accepted' | 'declined') => {
+    try {
+      await invitationApiHelper.updateInvitationStatus(id, status);
+
+      // Filter out the updated invitation from all 3 arrays
+      setLearnInvitations(prev => prev.filter(inv => inv._id !== id));
+      setTeachInvitations(prev => prev.filter(inv => inv._id !== id));
+      setExchangeInvitations(prev => prev.filter(inv => inv._id !== id));
+
+      showAlert('success', `Invitation ${status}.`);
+    } catch (err) {
+      console.error(err);
+      showAlert('error', `Failed to ${status} invitation.`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex justify-center items-center">
@@ -46,9 +111,7 @@ const InvitationPage = () => {
 
   if (error) {
     return (
-      <div className="h-screen flex justify-center items-center text-red-500">
-        {error}
-      </div>
+      <div className="h-screen flex justify-center items-center text-red-500">{error}</div>
     );
   }
 
@@ -58,10 +121,13 @@ const InvitationPage = () => {
         <Navbar />
       </div>
 
+      {/* ✅ Alert component */}
+      <Alert alert={alert} onClose={hideAlert} />
+
       <div className="pt-[130px] h-full w-full flex justify-center">
         <div className="w-11/12 h-auto px-4 pb-10 flex flex-col gap-10">
 
-          {/* Exchange Invitations */}
+          {/* Exchange */}
           <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
             <h4 className="font-semibold text-2xl mb-2 text-black">Exchange Skill Invitations</h4>
             <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
@@ -69,13 +135,13 @@ const InvitationPage = () => {
                 <p>No invitations.</p>
               ) : (
                 exchangeInvitations.map(inv => (
-                  <ExchangeInvitationCard key={inv._id} invitation={inv} />
+                  <ExchangeInvitationCard key={inv._id} invitation={inv} onStatusChange={handleStatusChange} />
                 ))
               )}
             </div>
           </div>
 
-          {/* Learn Invitations */}
+          {/* Learn */}
           <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
             <h4 className="font-semibold text-2xl mb-2 text-black">Learn Skill Invitations</h4>
             <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
@@ -83,13 +149,13 @@ const InvitationPage = () => {
                 <p>No invitations.</p>
               ) : (
                 learnInvitations.map(inv => (
-                  <InvitationCard key={inv._id} invitation={inv} />
+                  <InvitationCard key={inv._id} invitation={inv} onStatusChange={handleStatusChange} />
                 ))
               )}
             </div>
           </div>
 
-          {/* Teach Invitations */}
+          {/* Teach */}
           <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
             <h4 className="font-semibold text-2xl mb-2 text-black">Teach Skill Invitations</h4>
             <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
@@ -97,7 +163,7 @@ const InvitationPage = () => {
                 <p>No invitations.</p>
               ) : (
                 teachInvitations.map(inv => (
-                  <InvitationCard key={inv._id} invitation={inv} />
+                  <InvitationCard key={inv._id} invitation={inv} onStatusChange={handleStatusChange} />
                 ))
               )}
             </div>
