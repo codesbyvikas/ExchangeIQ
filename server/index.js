@@ -11,11 +11,7 @@ dotenv.config();
 // Passport Strategies
 require("./config/google");
 
-// Route files
-const authRoutes = require("./routes/auth");
-const profilRoutes = require("./routes/profile");
-const skillRoutes = require("./routes/skill")
-const postRoutes = require("./routes/post")
+
 // Initialize app
 const app = express();
 app.use(express.json());
@@ -60,10 +56,19 @@ app.get("/", (req, res) => {
   `);
 });
 
+// Route files
+const authRoutes = require("./routes/auth");
+const profilRoutes = require("./routes/profile");
+const skillRoutes = require("./routes/skill");
+const postRoutes = require("./routes/post");
+const invitationRoutes = require("./routes/invitation");
+
 app.use("/auth", authRoutes);
 app.use("/profile", profilRoutes)
 app.use("/skill", skillRoutes);
 app.use("/post",postRoutes)
+app.use("/invitation", invitationRoutes);
+
 // Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
