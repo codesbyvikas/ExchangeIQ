@@ -8,7 +8,6 @@ import invitationApiHelper from '../utils/api/invitationApiHelper';
 import profileApiHelper from '../utils/api/profileApi';
 
 const InvitationPage = () => {
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [learnInvitations, setLearnInvitations] = useState<InvitationType[]>([]);
   const [teachInvitations, setTeachInvitations] = useState<InvitationType[]>([]);
   const [exchangeInvitations, setExchangeInvitations] = useState<InvitationType[]>([]);
@@ -19,7 +18,6 @@ const InvitationPage = () => {
     const fetchData = async () => {
       try {
         const currentUser = await profileApiHelper.getSelfProfile();
-        setCurrentUserId(currentUser._id);
 
         const invitations = await invitationApiHelper.getUserInvitations();
         const filtered = invitations.filter(inv => inv.fromUser._id !== currentUser._id);
