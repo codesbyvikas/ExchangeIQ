@@ -6,7 +6,7 @@ const Footer = () => {
 
   return (
     <footer className="w-full mt-16 px-4">
-      <div className="max-w-6xl mx-auto rounded-xl border border-[#a0c4ff50] bg-[#FDECEA] backdrop-blur-lg shadow-[0_8px_32px_0_rgba(31,38,135,0.2)] transition-all duration-300">
+      <div className="max-w-6xl mx-auto rounded-xl border border-[#fdecea66] bg-[#fdecea80] backdrop-blur-lg shadow-[0_8px_24px_0_rgba(31,38,135,0.1)] transition-all duration-300">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 px-6 py-6 text-sm text-gray-800">
           
           {/* Logo */}
@@ -33,7 +33,7 @@ const Footer = () => {
           {/* Contact Icons */}
           <div className="flex items-center space-x-5 text-lg text-gray-700">
             <a
-              href="https://github.com/codesbyvikas/GitChat"
+              href="https://github.com/codesbyvikas/ExchangeIQ"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-purple-600 transition"
