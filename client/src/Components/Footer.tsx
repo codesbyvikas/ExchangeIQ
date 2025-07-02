@@ -5,7 +5,7 @@ const Footer = () => {
   const navigate = useNavigate();
 
   return (
-    <footer className="w-full mt-16 px-4">
+    <footer className="w-full mb-2  px-4">
       <div className="max-w-6xl mx-auto rounded-xl border border-[#fdecea66] bg-[#fdecea80] backdrop-blur-lg shadow-[0_8px_24px_0_rgba(31,38,135,0.1)] transition-all duration-300">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 px-6 py-6 text-sm text-gray-800">
           
@@ -22,12 +22,12 @@ const Footer = () => {
                 e.preventDefault();
                 navigate('/documentation');
               }}
-              className="hover:text-purple-600 font-medium transition"
+              className="hover:text-blue-500 font-medium transition"
             >
               Docs
             </a>
-            <a href="#" className="hover:text-purple-600 font-medium transition">Features</a>
-            <a href="#" className="hover:text-purple-600 font-medium transition">About</a>
+            <a href="#" className="hover:text-blue-500 font-medium transition">Features</a>
+            <a href="#" className="hover:text-blue-500 font-medium transition">About</a>
           </div>
 
           {/* Contact Icons */}
@@ -36,7 +36,7 @@ const Footer = () => {
               href="https://github.com/codesbyvikas/ExchangeIQ"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-purple-600 transition"
+              className="hover:text-blue-500 transition"
             >
               <FaGithub />
             </a>
@@ -44,13 +44,13 @@ const Footer = () => {
               href="https://linkedin.com/in/vikaskewat"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-purple-600 transition"
+              className="hover:text-blue-500 transition"
             >
               <FaLinkedin />
             </a>
             <a
               href="mailto:vikaskewat025@gmail.com"
-              className="hover:text-purple-600 transition"
+              className="hover:text-blue-500 transition"
             >
               <FaEnvelope />
             </a>

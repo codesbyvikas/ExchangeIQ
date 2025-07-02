@@ -373,110 +373,116 @@ const Home = () => {
   );
 
   return (
-    <div className="relative h-screen w-full overflow-y-auto">
-      <div className="fixed top-0 left-0 w-full z-50 bg-white">
-        <Navbar />
-      </div>
-
-      <div className="pt-[130px] overflow-y-auto h-full w-full flex justify-center">
-        {/* Fixed Alert Component */}
-        <Alert alert={alert} onClose={hideAlert} />
-        
-        <div className="w-11/12 h-auto px-4 pb-10 flex flex-col gap-10">
-
-          {currentUser && (
-            <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-              <h4 className="font-semibold text-2xl mb-2">Mutual Skill Exchanges</h4>
-              <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
-                {isLoadingExchange ? (
-                  <PostLoader />
-                ) : exchangePosts.length === 0 ? (
-                  <p className="text-gray-500">No mutual exchanges found yet.</p>
-                ) : (
-                  exchangePosts.map(({ learnSkill, exchangeForSkillId, fromUser, _id }) => {
-                    const theirSkill = skills.find(s => s._id === learnSkill._id);
-                    const yourSkill = skills.find(s => s._id === exchangeForSkillId);
-
-                    return (
-                      theirSkill && yourSkill && (
-                        <ExchangeSkillCard
-                          key={_id}
-                          skill={attachIcon(theirSkill)}
-                          exchangeFor={attachIcon(yourSkill)}
-                          user={fromUser}
-                          onSendInvite={handleSendInvite}
-                          isLoading={sendingInviteId === `${fromUser._id}-exchange-${exchangeForSkillId}-${learnSkill._id}`}
-                        />
-                      )
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-
-          {currentUser && (
-            <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-              <h4 className="font-semibold text-2xl mb-2">Skills You Can Learn</h4>
-              <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
-                {isLoadingLearn ? (
-                  <PostLoader />
-                ) : learnPosts.length === 0 ? (
-                  <p className="text-gray-500">No learning posts found.</p>
-                ) : (
-                  learnPosts.map(({ learnSkill, fromUser, _id }) => {
-                    const skill = skills.find(s => s._id === learnSkill._id);
-                    return (
-                      skill && (
-                        <LearnSkillCard
-                          key={_id}
-                          skill={attachIcon(skill)}
-                          user={fromUser}
-                          reqType="learn"
-                          onSendInvite={handleSendInvite}
-                          isLoading={sendingInviteId === `${fromUser._id}-learn-${learnSkill._id}-`}
-                        />
-                      )
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-
-          {currentUser && (
-            <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-              <h4 className="font-semibold text-3xl mb-2">Skills You Can Teach</h4>
-              <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
-                {isLoadingTeach ? (
-                  <PostLoader />
-                ) : teachPosts.length === 0 ? (
-                  <p className="text-gray-500">No teaching posts found.</p>
-                ) : (
-                  teachPosts.map(({ learnSkill, fromUser, _id }) => {
-                    const skill = skills.find(s => s._id === learnSkill._id);
-                    return (
-                      skill && (
-                        <LearnSkillCard
-                          key={_id}
-                          skill={attachIcon(skill)}
-                          user={fromUser}
-                          reqType="teach"
-                          onSendInvite={handleSendInvite}
-                          isLoading={sendingInviteId === `${fromUser._id}-teach--${learnSkill._id}`}
-                        />
-                      )
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-     <Footer/>
+  <div className="flex flex-col min-h-screen">
+    {/* Navbar */}
+    <div className="fixed top-0 left-0 w-full z-50 bg-white">
+      <Navbar />
     </div>
-  );
+
+    {/* Main Scrollable Content */}
+    <main className="flex-grow pt-[130px] w-full flex justify-center">
+      {/* Fixed Alert Component */}
+      <Alert alert={alert} onClose={hideAlert} />
+
+      <div className="w-11/12 h-auto px-4 pb-10 flex flex-col gap-10">
+        {/* Mutual Skill Exchanges */}
+        {currentUser && (
+          <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
+            <h4 className="font-semibold text-2xl mb-2">Mutual Skill Exchanges</h4>
+            <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
+              {isLoadingExchange ? (
+                <PostLoader />
+              ) : exchangePosts.length === 0 ? (
+                <p className="text-gray-500">No mutual exchanges found yet.</p>
+              ) : (
+                exchangePosts.map(({ learnSkill, exchangeForSkillId, fromUser, _id }) => {
+                  const theirSkill = skills.find(s => s._id === learnSkill._id);
+                  const yourSkill = skills.find(s => s._id === exchangeForSkillId);
+                  return (
+                    theirSkill && yourSkill && (
+                      <ExchangeSkillCard
+                        key={_id}
+                        skill={attachIcon(theirSkill)}
+                        exchangeFor={attachIcon(yourSkill)}
+                        user={fromUser}
+                        onSendInvite={handleSendInvite}
+                        isLoading={sendingInviteId === `${fromUser._id}-exchange-${exchangeForSkillId}-${learnSkill._id}`}
+                      />
+                    )
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Skills You Can Learn */}
+        {currentUser && (
+          <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
+            <h4 className="font-semibold text-2xl mb-2">Skills You Can Learn</h4>
+            <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
+              {isLoadingLearn ? (
+                <PostLoader />
+              ) : learnPosts.length === 0 ? (
+                <p className="text-gray-500">No learning posts found.</p>
+              ) : (
+                learnPosts.map(({ learnSkill, fromUser, _id }) => {
+                  const skill = skills.find(s => s._id === learnSkill._id);
+                  return (
+                    skill && (
+                      <LearnSkillCard
+                        key={_id}
+                        skill={attachIcon(skill)}
+                        user={fromUser}
+                        reqType="learn"
+                        onSendInvite={handleSendInvite}
+                        isLoading={sendingInviteId === `${fromUser._id}-learn-${learnSkill._id}-`}
+                      />
+                    )
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Skills You Can Teach */}
+        {currentUser && (
+          <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
+            <h4 className="font-semibold text-3xl mb-2">Skills You Can Teach</h4>
+            <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
+              {isLoadingTeach ? (
+                <PostLoader />
+              ) : teachPosts.length === 0 ? (
+                <p className="text-gray-500">No teaching posts found.</p>
+              ) : (
+                teachPosts.map(({ learnSkill, fromUser, _id }) => {
+                  const skill = skills.find(s => s._id === learnSkill._id);
+                  return (
+                    skill && (
+                      <LearnSkillCard
+                        key={_id}
+                        skill={attachIcon(skill)}
+                        user={fromUser}
+                        reqType="teach"
+                        onSendInvite={handleSendInvite}
+                        isLoading={sendingInviteId === `${fromUser._id}-teach--${learnSkill._id}`}
+                      />
+                    )
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
+
+    {/* Footer sits at the bottom if content is short, otherwise scrolls normally */}
+    <Footer />
+  </div>
+);
+
 };
 
 export default Home;
