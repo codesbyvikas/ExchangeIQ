@@ -2,13 +2,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../assets/logopng.png';
 import Avatar from '../assets/Avatar.png';
 import { useEffect, useState } from 'react';
+import { FaBars, FaTimes } from 'react-icons/fa';
 import profileApiHelper from '../utils/api/profileApi';
 import authApiHelper from '../utils/api/authApiHelper';
 import type { UserType } from '../utils/types/user';
 
 const Navbar = () => {
   const [user, setUser] = useState<UserType | null>(null);
-  // const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -36,16 +37,14 @@ const Navbar = () => {
         setUser(data);
       } catch (error) {
         console.error('Failed to fetch user:', error);
-      } finally {
-        // setLoading(false);
       }
     };
-
     fetchUserData();
   }, []);
 
   return (
-    <div className="w-full bg-[#E0F2FF]">
+    <div className="w-full bg-[#E0F2FF] relative">
+      {/* Top section */}
       <div className="w-full pr-10 flex justify-between items-center">
         <div className="pl-4 flex flex-col">
           <img className="w-60 h-20 object-cover" src={Logo} alt="ExchangeIQ Logo" />
@@ -58,10 +57,10 @@ const Navbar = () => {
         </div>
 
         {user && (
-          <div className="text-right flex flex-col items-end">
+          <div className="hidden sm:flex text-right flex-col items-end">
             <Link to="/profile">
               <img
-                className="w-14 h-14 rounded-full object-cover shadow-lg cursor-pointer"
+                className="w-14 h-14 rounded-full object-cover cursor-pointer"
                 src={user.photo || Avatar}
                 alt={user.name || 'Avatar'}
               />
@@ -74,9 +73,16 @@ const Navbar = () => {
             </button>
           </div>
         )}
+
+        {/* Mobile menu icon */}
+        <div className="sm:hidden pr-4">
+          <button onClick={() => setMenuOpen(!menuOpen)}>
+            {menuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+          </button>
+        </div>
       </div>
 
-      <div className="w-full flex justify-center absolute top-5">
+      <div className="w-full hidden sm:flex justify-center absolute top-5">
         <ul className="overflow-hidden font-semibold bg-[#ffffffb0] rounded-lg flex">
           <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]" to="/">
             <li>Home</li>
@@ -92,6 +98,41 @@ const Navbar = () => {
           </Link>
         </ul>
       </div>
+
+      {menuOpen && (
+        <div className="sm:hidden px-4 pb-4 pt-2">
+          <ul className="flex flex-col gap-1 font-semibold bg-[#ffffffb0] rounded-lg">
+            <Link to="/" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
+              <li>Home</li>
+            </Link>
+            <Link to="/invitations" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
+              <li>Invitations</li>
+            </Link>
+            <Link to="/friends" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
+              <li>Friends</li>
+            </Link>
+            <Link to="/skills" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
+              <li>Skills</li>
+            </Link>
+            {user && (
+              <>
+                <Link to="/profile" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:underline">
+                  <li>Profile</li>
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMenuOpen(false);
+                  }}
+                  className="px-4 py-2 text-left text-red-600 hover:underline"
+                >
+                  Logout
+                </button>
+              </>
+            )}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
