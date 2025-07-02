@@ -38,19 +38,25 @@ const Profile = () => {
     return (
         <div className="w-full h-auto">
             <Navbar />
-            <div className="w-full max-w-11/12 mx-auto my-10 flex flex-col">
-                <div className='px-8 py-4 flex justify-start rounded-xl items-center bg-white/90 shadow-lg gap-4'>
-                    <img
-                        src={Avatar}
-                        className="w-32 h-32 rounded-full border-4 border-[#3178C6] shadow mb-4"
-                        alt="Avatar"
-                    />
-                    <h2 className="text-3xl font-bold text-[#3178C6] mb-1">
-                        {currentUser?.name || 'Loading...'}
-                    </h2>
-                    <p className="text-lg text-gray-600 mb-6">
-                        {currentUser?.profession || ''}
-                    </p>
+            <div className="w-full max-w-11/12 mx-auto my-6 flex flex-col">
+                <div className='flex gap-4'>
+                    <div className='px-4 py-4 flex justify-center flex-col rounded-xl items-center bg-white/90 shadow-lg gap-4'>
+                        <img
+                            src={Avatar}
+                            className="w-18 h-18 rounded-full border-4 border-[#3178C6] shadow"
+                            alt="Avatar"
+                        />
+                        <h2 className="text-xl text-nowrap font-bold text-[#3178C6]">
+                            {/* {currentUser?.profession || ''} */}
+                            Fullstack Developer
+                        </h2>
+                    </div>
+                    <div className='w-full px-4 py-4 flex justify-end flex-col rounded-xl items-start bg-white/90 shadow-lg'>
+                        <h2 className="text-4xl font-bold text-gray-600">
+                            {currentUser?.name || 'Loading...'}
+                        </h2>
+                        <p className='text-2xl font-light'>useremail@gmail.com</p>
+                    </div>
                 </div>
                 <div className="mt-4 w-full flex gap-4">
                     <div className="px-8 py-8  flex-1 bg-[#f1f8ff] rounded-xl shadow-lg">
