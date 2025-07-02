@@ -13,7 +13,7 @@ const Navbar = () => {
 
   const handleClick = () => {
     if (user) {
-      navigate('/profile');
+      navigate(`/profile/${user._id}`);
     } else {
       navigate('/auth');
     }
