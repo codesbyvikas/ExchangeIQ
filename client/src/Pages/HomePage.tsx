@@ -11,6 +11,7 @@ import type { PostType } from '../utils/types/post';
 import type { InvitationType, RequestType } from '../utils/types/invitation';
 import type { UserType } from '../utils/types/user.tsx';
 import { RotateLoader } from 'react-spinners';
+import Footer from '../Components/Footer.tsx';
 
 interface ExchangePostType extends PostType {
   exchangeForSkillId: string;
@@ -473,6 +474,7 @@ const Home = () => {
           )}
         </div>
       </div>
+     
     </div>
   );
 };

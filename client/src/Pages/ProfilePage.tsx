@@ -63,10 +63,10 @@ const Profile = () => {
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="font-semibold text-xl text-[#3178C6] flex items-center gap-2">
                                 <span className="inline-block w-3 h-3 bg-[#3178C6] rounded-full"></span>
-                                Skills to Learn
+                                Wish to Learn
                             </h3>
                             <button
-                                className="text-sm px-3 py-1 bg-[#3178C6] text-white rounded hover:bg-[#225a8c] transition"
+                                className="text-sm cursor-pointer px-3 py-1 bg-[#3178C6] text-white rounded hover:bg-[#225a8c] transition"
                                 onClick={() => navigate('/profile/skills/learn')}
                             >
                                 Edit
@@ -93,10 +93,10 @@ const Profile = () => {
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="font-semibold text-xl text-[#3178C6] flex items-center gap-2">
                                 <span className="inline-block w-3 h-3 bg-[#3178C6] rounded-full"></span>
-                                Skills to Teach
+                                Wish to to Teach
                             </h3>
                             <button
-                                className="text-sm px-3 py-1 bg-[#3178C6] text-white rounded hover:bg-[#225a8c] transition"
+                                className="text-sm px-3 cursor-pointer py-1 bg-[#3178C6] text-white rounded hover:bg-[#225a8c] transition"
                                 onClick={() => navigate('/profile/skills/teach')}
                             >
                                 Edit

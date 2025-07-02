@@ -7,7 +7,6 @@ import type { InvitationType } from '../utils/types/invitation';
 import invitationApiHelper from '../utils/api/invitationApiHelper';
 import profileApiHelper from '../utils/api/profileApi';
 
-// ✅ ALERT COMPONENT + STATE - Fixed type for onClose
 interface AlertProps {
   alert: { show: boolean; type: 'success' | 'error'; message: string };
   onClose: () => void;
@@ -52,7 +51,6 @@ const InvitationPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ ALERT STATE
   const [alert, setAlert] = useState({ show: false, type: 'success' as 'success' | 'error', message: '' });
 
   const showAlert = (type: 'success' | 'error', message: string) => {
@@ -70,9 +68,9 @@ const InvitationPage = () => {
         const invitations = await invitationApiHelper.getUserInvitations();
         const filtered = invitations.filter(inv => inv.fromUser._id !== currentUser._id);
 
-        setLearnInvitations(filtered.filter(inv => inv.reqType === 'teach'));
-        setTeachInvitations(filtered.filter(inv => inv.reqType === 'learn'));
-        setExchangeInvitations(filtered.filter(inv => inv.reqType === 'exchange'));
+        setLearnInvitations(filtered.filter(inv => inv.reqType === 'teach' && inv.status=='pending'));
+        setTeachInvitations(filtered.filter(inv => inv.reqType === 'learn' && inv.status=='pending'));
+        setExchangeInvitations(filtered.filter(inv => inv.reqType === 'exchange' && inv.status=='pending'));
       } catch (err) {
         setError('Failed to load invitations or user data.');
         console.error(err);
