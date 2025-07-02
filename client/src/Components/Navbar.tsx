@@ -8,7 +8,7 @@ import type { UserType } from '../utils/types/user';
 
 const Navbar = () => {
   const [user, setUser] = useState<UserType | null>(null);
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -37,7 +37,7 @@ const Navbar = () => {
       } catch (error) {
         console.error('Failed to fetch user:', error);
       } finally {
-        setLoading(false);
+        // setLoading(false);
       }
     };
 
