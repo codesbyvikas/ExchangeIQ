@@ -1,56 +1,65 @@
-import { Link } from 'react-router-dom';
-import { FaGithub, FaLinkedin, FaTwitter } from 'react-icons/fa';
-import Logo from '../assets/logopng.png';
+import { FaGithub, FaLinkedin, FaEnvelope } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 const Footer = () => {
+  const navigate = useNavigate();
+
   return (
-    <footer className="bg-gray-900 text-white py-10 px-6 md:px-20">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="w-full mt-16 px-4">
+      <div className="max-w-6xl mx-auto rounded-xl border border-[#a0c4ff50] bg-[#FDECEA] backdrop-blur-lg shadow-[0_8px_32px_0_rgba(31,38,135,0.2)] transition-all duration-300">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6 px-6 py-6 text-sm text-gray-800">
+          
+          {/* Logo */}
+          <div className="flex items-center space-x-3">
+            <img src="src/assets/logopng2.png" alt="ExchangeIQ Logo" className="w-auto h-10 drop-shadow" />
+          </div>
 
-        {/* Logo and Description */}
-        <div className="col-span-1">
-          <img src={Logo} alt="ExchangeIQ Logo" className="h-10 mb-4" />
-          <p className="text-sm text-gray-400">
-            ExchangeIQ is your platform to learn, teach, and grow — one skill at a time.
-          </p>
-        </div>
+          {/* Navigation Links */}
+          <div className="flex space-x-6 text-sm">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/documentation');
+              }}
+              className="hover:text-purple-600 font-medium transition"
+            >
+              Docs
+            </a>
+            <a href="#" className="hover:text-purple-600 font-medium transition">Features</a>
+            <a href="#" className="hover:text-purple-600 font-medium transition">About</a>
+          </div>
 
-        {/* Quick Links */}
-        <div>
-          <h3 className="font-semibold mb-4">Quick Links</h3>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li><Link to="/" className="hover:text-white">Home</Link></li>
-            <li><Link to="/about" className="hover:text-white">About</Link></li>
-            <li><Link to="/contact" className="hover:text-white">Contact</Link></li>
-          </ul>
-        </div>
-
-        {/* Skill Categories */}
-        <div>
-          <h3 className="font-semibold mb-4">Skill Categories</h3>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li>Technical</li>
-            <li>Creative</li>
-            <li>Career & Life</li>
-            <li>Remote-friendly</li>
-          </ul>
-        </div>
-
-        {/* Social & Legal */}
-        <div>
-          <h3 className="font-semibold mb-4">Follow Us</h3>
-          <div className="flex space-x-4 text-gray-400">
-            <a href="#" aria-label="GitHub" className="hover:text-white"><FaGithub /></a>
-            <a href="#" aria-label="LinkedIn" className="hover:text-white"><FaLinkedin /></a>
-            <a href="#" aria-label="Twitter" className="hover:text-white"><FaTwitter /></a>
+          {/* Contact Icons */}
+          <div className="flex items-center space-x-5 text-lg text-gray-700">
+            <a
+              href="https://github.com/codesbyvikas/GitChat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-purple-600 transition"
+            >
+              <FaGithub />
+            </a>
+            <a
+              href="https://linkedin.com/in/vikaskewat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-purple-600 transition"
+            >
+              <FaLinkedin />
+            </a>
+            <a
+              href="mailto:vikaskewat025@gmail.com"
+              className="hover:text-purple-600 transition"
+            >
+              <FaEnvelope />
+            </a>
           </div>
         </div>
 
-      </div>
-
-      {/* Bottom Bar */}
-      <div className="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-500">
-        &copy; {new Date().getFullYear()} ExchangeIQ. All rights reserved.
+        <div className="text-center text-xs text-gray-600 pb-4">
+          © {new Date().getFullYear()} <span className="text-[#3178C6] font-medium">ExchangeIQ</span>. All rights reserved.
+        </div>
       </div>
     </footer>
   );
