@@ -6,6 +6,7 @@ import InvitationCard from '../Components/InvitationCard';
 import type { InvitationType } from '../utils/types/invitation';
 import invitationApiHelper from '../utils/api/invitationApiHelper';
 import profileApiHelper from '../utils/api/profileApi';
+import Footer from '../Components/Footer';
 
 interface AlertProps {
   alert: { show: boolean; type: 'success' | 'error'; message: string };
@@ -82,7 +83,6 @@ const InvitationPage = () => {
     fetchData();
   }, []);
 
-  // ✅ Handle Accept/Reject + Remove Card + Alert - Fixed to use "declined" instead of "rejected"
   const handleStatusChange = async (id: string, status: 'accepted' | 'declined') => {
     try {
       await invitationApiHelper.updateInvitationStatus(id, status);
@@ -114,63 +114,62 @@ const InvitationPage = () => {
   }
 
   return (
-    <div className="relative h-screen w-full overflow-y-auto">
-      <div className="fixed top-0 left-0 w-full z-50 bg-white">
-        <Navbar />
-      </div>
-
-      {/* ✅ Alert component */}
-      <Alert alert={alert} onClose={hideAlert} />
-
-      <div className="pt-[130px] h-full w-full flex justify-center">
-        <div className="w-11/12 h-auto px-4 pb-10 flex flex-col gap-10">
-
-          {/* Exchange */}
-          <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-            <h4 className="font-semibold text-2xl mb-2 text-black">Exchange Skill Invitations</h4>
-            <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
-              {exchangeInvitations.length === 0 ? (
-                <p>No invitations.</p>
-              ) : (
-                exchangeInvitations.map(inv => (
-                  <ExchangeInvitationCard key={inv._id} invitation={inv} onStatusChange={handleStatusChange} />
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Learn */}
-          <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-            <h4 className="font-semibold text-2xl mb-2 text-black">Learn Skill Invitations</h4>
-            <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
-              {learnInvitations.length === 0 ? (
-                <p>No invitations.</p>
-              ) : (
-                learnInvitations.map(inv => (
-                  <InvitationCard key={inv._id} invitation={inv} onStatusChange={handleStatusChange} />
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Teach */}
-          <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-            <h4 className="font-semibold text-2xl mb-2 text-black">Teach Skill Invitations</h4>
-            <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
-              {teachInvitations.length === 0 ? (
-                <p>No invitations.</p>
-              ) : (
-                teachInvitations.map(inv => (
-                  <InvitationCard key={inv._id} invitation={inv} onStatusChange={handleStatusChange} />
-                ))
-              )}
-            </div>
-          </div>
-
-        </div>
-      </div>
+  <div className="flex flex-col min-h-screen">
+    <div className="fixed top-0 left-0 w-full z-50 bg-white">
+      <Navbar />
     </div>
-  );
+
+    <Alert alert={alert} onClose={hideAlert} />
+
+    <main className="flex-grow pt-[130px] w-full flex justify-center">
+      <div className="w-11/12 h-auto px-4 pb-10 flex flex-col gap-10">
+
+        {/* Exchange */}
+        <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
+          <h4 className="font-semibold text-2xl mb-2 text-black">Exchange Skill Invitations</h4>
+          <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
+            {exchangeInvitations.length === 0 ? (
+              <p>No invitations.</p>
+            ) : (
+              exchangeInvitations.map(inv => (
+                <ExchangeInvitationCard key={inv._id} invitation={inv} onStatusChange={handleStatusChange} />
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
+          <h4 className="font-semibold text-2xl mb-2 text-black">Learn Skill Invitations</h4>
+          <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
+            {learnInvitations.length === 0 ? (
+              <p>No invitations.</p>
+            ) : (
+              learnInvitations.map(inv => (
+                <InvitationCard key={inv._id} invitation={inv} onStatusChange={handleStatusChange} />
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
+          <h4 className="font-semibold text-2xl mb-2 text-black">Teach Skill Invitations</h4>
+          <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
+            {teachInvitations.length === 0 ? (
+              <p>No invitations.</p>
+            ) : (
+              teachInvitations.map(inv => (
+                <InvitationCard key={inv._id} invitation={inv} onStatusChange={handleStatusChange} />
+              ))
+            )}
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <Footer />
+  </div>
+);
 };
 
 export default InvitationPage;

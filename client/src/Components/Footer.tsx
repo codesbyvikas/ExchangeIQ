@@ -57,7 +57,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="text-center text-xs text-gray-600 pb-4">
+        <div className="text-center text-xs text-gray-600 pb-2">
           © {new Date().getFullYear()} <span className="text-[#3178C6] font-medium">ExchangeIQ</span>. All rights reserved.
         </div>
       </div>

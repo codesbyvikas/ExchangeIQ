@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useState } from 'react';
 import Avatar from '../assets/Avatar.png';
 import type { InvitationType } from '../utils/types/invitation';
+import Footer from "./Footer";
 
 interface Props {
   invitation: InvitationType;
@@ -64,6 +65,7 @@ const InvitationCard = ({ invitation, onStatusChange }: Props) => {
           </div>
         </button>
       </div>
+
     </div>
   );
 };
