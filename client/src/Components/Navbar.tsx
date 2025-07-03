@@ -58,13 +58,14 @@ const Navbar = () => {
 
         {user && (
           <div className="hidden sm:flex text-right flex-col items-end">
-            <Link to="/profile">
+            <button onClick={()=>navigate("/profile")}>
               <img
                 className="w-14 h-14 rounded-full object-cover cursor-pointer"
                 src={user.photo || Avatar}
                 alt={user.name || 'Avatar'}
               />
-            </Link>
+            </button>
+            
             <button
               onClick={handleLogout}
               className="mt-2 cursor-pointer px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition"
@@ -90,8 +91,8 @@ const Navbar = () => {
           <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]" to="/invitations">
             <li>Invitations</li>
           </Link>
-          <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]" to="/friends">
-            <li>Friends</li>
+          <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]" to="/chat">
+            <li>Chats</li>
           </Link>
           <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white" to="/skills">
             <li>Skills</li>
