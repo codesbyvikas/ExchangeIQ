@@ -12,11 +12,11 @@ dotenv.config();
 require("./config/google");
 
 const app = express();
-const server = http.createServer(app); // ✅ Corrected
+const server = http.createServer(app); 
 
 app.use(express.json());
 
-// ✅ Enable CORS for frontend
+//  Enable CORS for frontend
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -24,13 +24,13 @@ app.use(
   })
 );
 
-// ✅ MongoDB Connection
+//  MongoDB Connection
 mongoose.connect(process.env.MONGO_URI).then(() => {
   console.log("✅ Database connected");
   console.log("📦 Using database:", mongoose.connection.name);
 });
 
-// ✅ Session Middleware
+//  Session Middleware
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "defaultsecret",
   resave: false,
@@ -42,12 +42,12 @@ const sessionMiddleware = session({
   },
 });
 
-// ✅ Passport Middleware
+//  Passport Middleware
 app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ✅ Routes
+//  Routes
 app.use("/auth", require("./routes/auth"));
 app.use("/profile", require("./routes/profile"));
 app.use("/skill", require("./routes/skill"));
@@ -55,7 +55,7 @@ app.use("/post", require("./routes/post"));
 app.use("/invitation", require("./routes/invitation"));
 app.use("/messages", require("./routes/message"));
 
-// ✅ Socket.IO setup
+// Socket.IO setup
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
