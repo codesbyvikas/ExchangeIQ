@@ -1,31 +1,50 @@
-const express = require("express");
+const express = require('express');
+const Invitation = require('../models/invitation');
+const Message = require('../models/message');
 const router = express.Router();
-const Message = require("../models/message");
-const Invitation = require("../models/invitation");
 
-const getAcceptedInvitation = async (user1, user2) => {
-    return await Invitation.findOne({
-        status: "accepted",
-        $or: [
-            { fromUser: user1, toUser: user2},
-            { fromUser: user2, toUser: user1},
-        ],
-    });
-}
+const checkInvitation = async (u1, u2) => {
+  return Invitation.findOne({
+    status: 'accepted',
+    $or: [
+      { fromUser: u1, toUser: u2 },
+      { fromUser: u2, toUser: u1 }
+    ]
+  });
+};
 
-router.get("/:user1/:user2", async (req, res) => {
+router.get('/:user1/:user2', async (req, res) => {
+  try {
     const { user1, user2 } = req.params;
-    const invitation = await getAcceptedInvitation(userq, user2);
-
-    if(!invitation) {
-        return res.status(403).json({ message: "Chat not allowed"});
-    }
-
-    const messages = await Message.findOne({
-        InvitationId: invitation._id,
-    }).sort({createdAt: 1});
-
-    res.json(messages);
+    const inv = await checkInvitation(user1, user2);
+    if (!inv) return res.status(403).json({ message: 'Not allowed' });
+    const msgs = await Message.find({ invitationId: inv._id }).sort('createdAt');
+    res.json(msgs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-module.exports = router ;
+router.post('/send', async (req, res) => {
+  try {
+    const { from, to, text, media } = req.body;
+    const inv = await checkInvitation(from, to);
+    if (!inv) return res.status(403).json({ message: 'Not allowed to chat' });
+
+    const msg = await Message.create({
+      sender: from,
+      receiver: to,
+      text,
+      media,
+      invitationId: inv._id,
+      invitationType: inv.reqType,
+      skillOffered: inv.skillOffered,
+      skillRequested: inv.skillRequested
+    });
+    res.json(msg);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+module.exports = router;

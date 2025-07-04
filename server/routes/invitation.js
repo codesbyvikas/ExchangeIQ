@@ -1,8 +1,8 @@
 const express = require("express");
 const Invitation = require("../models/invitation");
+const Chat = require("../models/chat"); // Add this import
 const router = express.Router(); 
 const authCheck = require("../middlewares/auth");
-
 
 router.post('/send', authCheck, async (req, res) => {
     try {
@@ -46,6 +46,7 @@ router.get('/', authCheck, async (req, res) => {
     }
 });
 
+// Modified status update route to create chat when accepted
 router.patch('/:id/status', authCheck, async (req, res) => {
     try {
         const { status } = req.body;
@@ -55,7 +56,9 @@ router.patch('/:id/status', authCheck, async (req, res) => {
             return res.status(400).json({ message: 'Invalid status value' });
         }
 
-        const invitation = await Invitation.findById(id);
+        const invitation = await Invitation.findById(id)
+            .populate('skillOffered', 'name')
+            .populate('skillRequested', 'name');
 
         if (!invitation) {
             return res.status(404).json({ message: 'Invitation not found' });
@@ -67,6 +70,43 @@ router.patch('/:id/status', authCheck, async (req, res) => {
 
         invitation.status = status;
         await invitation.save();
+
+        // Create chat when invitation is accepted
+        if (status === 'accepted') {
+            try {
+                // Check if chat already exists between these users for this skill
+                const existingChat = await Chat.findOne({
+                    participants: { $all: [invitation.fromUser, invitation.toUser] },
+                    skillInvolved: invitation.reqType === 'exchange' ? invitation.skillOffered : 
+                                  invitation.reqType === 'learn' ? invitation.skillRequested :
+                                  invitation.skillOffered
+                });
+
+                if (!existingChat) {
+                    const skillInvolved = invitation.reqType === 'exchange' ? invitation.skillOffered : 
+                                         invitation.reqType === 'learn' ? invitation.skillRequested :
+                                         invitation.skillOffered;
+
+                    const newChat = await Chat.create({
+                        participants: [invitation.fromUser, invitation.toUser],
+                        chatType: invitation.reqType,
+                        skillInvolved: skillInvolved,
+                        messages: [{
+                            sender: invitation.fromUser,
+                            text: `Hello! I'm excited to ${invitation.reqType === 'exchange' ? 'exchange skills' : 
+                                  invitation.reqType === 'learn' ? 'learn from you' : 'teach you'} regarding ${skillInvolved.name}!`,
+                            timestamp: new Date(),
+                            isRead: false
+                        }]
+                    });
+
+                    console.log('Chat created successfully:', newChat._id);
+                }
+            } catch (chatError) {
+                console.error('Error creating chat:', chatError);
+                // Don't fail the invitation acceptance if chat creation fails
+            }
+        }
 
         res.json(invitation);
     } catch (error) {

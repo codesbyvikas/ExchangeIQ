@@ -1,74 +1,49 @@
-const Message = require("../models/message");
-const Invitation = require("../models/invitation");
+const Message = require('../models/message');
+const Invitation = require('../models/invitation');
 
-module.exports = function setupChat(io) {
-  io.on("connection", (socket) => {
-    console.log("✅ New socket connected:", socket.id);
-
+module.exports = function(io) {
+  io.on('connection', socket => {
     const user = socket.handshake.session?.passport?.user;
-    if (!user) {
-      console.log("❌ No user session, disconnecting socket:", socket.id);
-      return socket.disconnect();
-    }
+    if (!user) return socket.disconnect();
 
-    const userId = user._id;
-    socket.join(userId);
-    console.log(`👤 User ${userId} joined room ${userId}`);
+    const uid = user._id;
+    socket.join(uid);
 
-    socket.on("send_message", async ({ to, text, media }) => {
-      console.log(`📨 Message from ${userId} to ${to}: ${text || "[media]"}`);
-
-      const invitation = await Invitation.findOne({
-        status: "accepted",
+    socket.on('send_message', async ({ to, text, media }) => {
+      const inv = await Invitation.findOne({
+        status: 'accepted',
         $or: [
-          { fromUser: userId, toUser: to },
-          { fromUser: to, toUser: userId },
-        ],
+          { fromUser: uid, toUser: to },
+          { fromUser: to, toUser: uid }
+        ]
       });
+      if (!inv) return socket.emit('chat_error', 'Not allowed to chat');
 
-      if (!invitation) {
-        return socket.emit("chat_error", {
-          message: "You can only chat after invitation is accepted.",
-        });
-      }
-
-      const message = await Message.create({
-        sender: userId,
+      const msg = await Message.create({
+        sender: uid,
         receiver: to,
         text,
-        media: media || null,
-        invitationId: invitation._id,
-        invitationType: invitation.reqType,
-        skillOffered: invitation.skillOffered,
-        skillRequested: invitation.skillRequested,
+        media,
+        invitationId: inv._id,
+        invitationType: inv.reqType,
+        skillOffered: inv.skillOffered,
+        skillRequested: inv.skillRequested
       });
-
-      io.to(userId).emit("receive_message", message);
-      io.to(to).emit("receive_message", message);
+      io.to(uid).emit('receive_message', msg);
+      io.to(to).emit('receive_message', msg);
     });
 
-    socket.on("load_messages", async ({ to }) => {
-      const invitation = await Invitation.findOne({
-        status: "accepted",
+    socket.on('load_messages', async ({ to }) => {
+      const inv = await Invitation.findOne({
+        status: 'accepted',
         $or: [
-          { fromUser: userId, toUser: to },
-          { fromUser: to, toUser: userId },
-        ],
+          { fromUser: uid, toUser: to },
+          { fromUser: to, toUser: uid }
+        ]
       });
-
-      if (!invitation) {
-        return socket.emit("chat_error", { message: "Chat not allowed." });
-      }
-
-      const messages = await Message.find({
-        invitationId: invitation._id,
-      }).sort({ createdAt: 1 });
-
-      socket.emit("chat_history", messages);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("👋 Socket disconnected:", socket.id);
+      if (!inv) return socket.emit('chat_error', 'Not allowed');
+      const msgs = await Message.find({ invitationId: inv._id }).sort('createdAt');
+      socket.emit('chat_history', msgs);
     });
   });
 };
