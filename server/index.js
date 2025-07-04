@@ -4,73 +4,71 @@ const passport = require("passport");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
+const sharedSession = require("express-socket.io-session");
 
-// Load environment variables
 dotenv.config();
-
-// Passport Strategies
 require("./config/google");
 
-
-// Initialize app
 const app = express();
+const server = http.createServer(app); // ✅ Corrected
+
 app.use(express.json());
 
-// Enable CORS for frontend
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-}));
+// ✅ Enable CORS for frontend
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("✅ Database connected");
+// ✅ MongoDB Connection
+mongoose.connect(process.env.MONGO_URI).then(() => {
+  console.log("✅ Database connected");
+  console.log("📦 Using database:", mongoose.connection.name);
+});
 
-    console.log("📦 Using database:", mongoose.connection.name);
-
-  });
-
-// Session Middleware
-app.use(session({
+// ✅ Session Middleware
+const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "defaultsecret",
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, 
+    secure: false,
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24, 
+    maxAge: 1000 * 60 * 60 * 24,
   },
-}));
+});
 
-// Passport Middleware
+// ✅ Passport Middleware
+app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Routes
-app.get("/", (req, res) => {
-  res.send(`
-    <h1>ExchangeIQ Auth</h1>
-    <a href='/auth/google'>Login with Google</a><br>
-  `);
+// ✅ Routes
+app.use("/auth", require("./routes/auth"));
+app.use("/profile", require("./routes/profile"));
+app.use("/skill", require("./routes/skill"));
+app.use("/post", require("./routes/post"));
+app.use("/invitation", require("./routes/invitation"));
+app.use("/messages", require("./routes/message"));
+
+// ✅ Socket.IO setup
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    credentials: true,
+  },
 });
+io.use(sharedSession(sessionMiddleware, { autoSave: true }));
 
-// Route files
-const authRoutes = require("./routes/auth");
-const profilRoutes = require("./routes/profile");
-const skillRoutes = require("./routes/skill");
-const postRoutes = require("./routes/post");
-const invitationRoutes = require("./routes/invitation");
+// Load socket logic
+require("./sockets/chatSocket")(io);
 
-app.use("/auth", authRoutes);
-app.use("/profile", profilRoutes)
-app.use("/skill", skillRoutes);
-app.use("/post",postRoutes)
-app.use("/invitation", invitationRoutes);
-
-// Start Server
+//  Start Server with Socket.IO bound
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server running on PORT: ${PORT}`);
 });

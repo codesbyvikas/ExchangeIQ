@@ -30,8 +30,7 @@ router.post('/edit', authCheck, async (req, res) => {
   }
 });
 
-
-router.get("/me", authCheck, async (req, res) => {
+router.get('/me', authCheck, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select(
       "name email photo profession skillsToTeach skillsToLearn createdAt"
@@ -64,6 +63,5 @@ router.get('/:id', async (req, res) => {
     res.status(500).send("Internal server error");
   }
 });
-
 
 module.exports = router;

@@ -38,7 +38,7 @@ router.get('/', authCheck, async (req, res) => {
         .populate('toUser', 'name photo')
         .populate('skillOffered', 'name iconUrl')
         .populate('skillRequested', 'name iconUrl')
-        .sort({ createdAt: -1 }); // optional: newest first
+        .sort({ createdAt: -1 });
 
         res.json(invitations);
     } catch (error) {
@@ -48,7 +48,7 @@ router.get('/', authCheck, async (req, res) => {
 
 router.patch('/:id/status', authCheck, async (req, res) => {
     try {
-        const { status } = req.body; // ✅ fix: should be req.body, not res.body
+        const { status } = req.body;
         const { id } = req.params;
 
         if (!['pending', 'accepted', 'declined'].includes(status)) {
