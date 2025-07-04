@@ -139,7 +139,7 @@ const InvitationPage = () => {
         </div>
 
         <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-          <h4 className="font-semibold text-2xl mb-2 text-black">Learn Skill Invitations</h4>
+          <h4 className="font-semibold text-2xl mb-2 text-black">Invitations to learn from you</h4>
           <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
             {learnInvitations.length === 0 ? (
               <p>No invitations.</p>
@@ -152,7 +152,7 @@ const InvitationPage = () => {
         </div>
 
         <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-          <h4 className="font-semibold text-2xl mb-2 text-black">Teach Skill Invitations</h4>
+          <h4 className="font-semibold text-2xl mb-2 text-black">Invitations to teach you</h4>
           <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
             {teachInvitations.length === 0 ? (
               <p>No invitations.</p>
