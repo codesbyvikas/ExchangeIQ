@@ -5,7 +5,7 @@ import ExchangeInvitationCard from '../Components/ExchangeInvitationCard';
 import InvitationCard from '../Components/InvitationCard';
 import type { InvitationType } from '../utils/types/invitation';
 import invitationApiHelper from '../utils/api/invitationApiHelper';
-import profileApiHelper from '../utils/api/profileApi';
+import profileApiHelper from '../utils/api/profileApiHelper';
 import Footer from '../Components/Footer';
 
 interface AlertProps {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Skill } from '../utils/types/skill';
 import skillApiHelper from '../utils/api/skillApiHelper';
-import profileApiHelper from '../utils/api/profileApi';
+import profileApiHelper from '../utils/api/profileApiHelper';
 import postApiHelper from '../utils/api/postApiHelper';
 import { useNavigate } from 'react-router-dom';
 import SkillCard from '../Components/SkillCard';

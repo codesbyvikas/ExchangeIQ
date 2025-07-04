@@ -1,8 +1,9 @@
+// src/utils/api/invitationApiHelper.ts
 import axios from "axios";
 import type {
   InvitationType,
   InvitationStatus,
-  SendInvitationPayload, 
+  SendInvitationPayload,
 } from "../types/invitation";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;

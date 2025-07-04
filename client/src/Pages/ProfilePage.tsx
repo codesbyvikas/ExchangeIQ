@@ -4,7 +4,7 @@ import Navbar from '../Components/Navbar';
 import Footer from '../Components/Footer';
 import type { Skill } from '../utils/types/skill';
 import type { UserType } from '../utils/types/user';
-import profileApiHelper from '../utils/api/profileApi';
+import profileApiHelper from '../utils/api/profileApiHelper';
 import skillApiHelper from '../utils/api/skillApiHelper';
 import { useNavigate } from 'react-router-dom';
 import { FaEdit, FaSave } from 'react-icons/fa';

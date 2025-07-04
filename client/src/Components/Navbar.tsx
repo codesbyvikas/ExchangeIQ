@@ -3,7 +3,7 @@ import Logo from '../assets/logopng.png';
 import Avatar from '../assets/Avatar.png';
 import { useEffect, useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
-import profileApiHelper from '../utils/api/profileApi';
+import profileApiHelper from '../utils/api/profileApiHelper';
 import authApiHelper from '../utils/api/authApiHelper';
 import type { UserType } from '../utils/types/user';
 

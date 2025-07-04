@@ -3,7 +3,7 @@ import LearnSkillCard from '../Components/LearnSkillCard.tsx';
 import ExchangeSkillCard from '../Components/ExchangeSkillCard.tsx';
 import { useEffect, useState, useCallback } from 'react';
 import postApiHelper from '../utils/api/postApiHelper';
-import profileApiHelper from '../utils/api/profileApi';
+import profileApiHelper from '../utils/api/profileApiHelper.tsx';
 import skillApiHelper from '../utils/api/skillApiHelper';
 import invitationApiHelper from '../utils/api/invitationApiHelper';
 import type { Skill } from '../utils/types/skill';
