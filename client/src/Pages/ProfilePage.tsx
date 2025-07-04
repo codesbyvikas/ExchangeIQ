@@ -7,12 +7,17 @@ import type { UserType } from '../utils/types/user';
 import profileApiHelper from '../utils/api/profileApi';
 import skillApiHelper from '../utils/api/skillApiHelper';
 import { useNavigate } from 'react-router-dom';
+import { FaEdit, FaSave } from 'react-icons/fa';
 import { RotateLoader } from 'react-spinners';
 
 const Profile = () => {
   const [currentUser, setCurrentUser] = useState<UserType>();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [editBtnActive, setEditBtnActive] = useState(false);
+  const [professionInput, setProfessionInput] = useState('');
+  const [characterLength, setCharacterLength] = useState(0);
+  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,6 +30,8 @@ const Profile = () => {
         ]);
         setCurrentUser(profileRes);
         setSkills(skillsRes);
+        setProfessionInput(profileRes.profession || '');
+        setCharacterLength((profileRes.profession || '').length);
       } catch (error) {
         console.error('Error loading profile:', error);
       } finally {
@@ -37,6 +44,30 @@ const Profile = () => {
   const getSkillDetails = (ids: string[]) =>
     skills.filter(skill => ids.includes(skill._id));
 
+  const handleEditBtn = () => {
+    setEditBtnActive(true);
+  };
+
+  const handleProfessionInput = (e) => {
+    setProfessionInput(e.target.value);
+    setCharacterLength(e.target.value.length);
+  };
+
+  const handleSaveProfession = async () => {
+    if (!currentUser) return;
+    setSaving(true);
+    try {
+      await profileApiHelper.profileUpdate({ profession: professionInput });
+      setCurrentUser({ ...currentUser, profession: professionInput });
+      setEditBtnActive(false);
+    } catch (error) {
+      // Optionally show error
+      console.error('Failed to update profession', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="w-full min-h-screen flex flex-col">
       <Navbar />
@@ -46,21 +77,48 @@ const Profile = () => {
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-1/3 px-4 py-6 flex flex-col items-center bg-white/90 shadow-lg rounded-xl">
             <img
-              src={currentUser?.photo|| Avatar}
+              src={currentUser?.photo || Avatar}
               className="w-24 h-24 rounded-full border-4 border-[#3178C6] shadow"
               alt="Avatar"
             />
-            <h2 className="text-xl font-bold text-[#3178C6] mt-2">
-              Fullstack Developer
-            </h2>
+            <div className='mt-2 relative w-full'>
+              <div className={`w-full px-1 absolute top-0 flex items-center ${!editBtnActive ? 'justify-end' : 'justify-between'}`}>
+                {editBtnActive && <span className='text-xs text-gray-600 font-extralight'>max {characterLength}/20</span>}
+                {editBtnActive ? (
+                  <button
+                    className="text-sm cursor-pointer text-[#3178C6] flex items-center gap-0.5"
+                    onClick={handleSaveProfession}
+                    disabled={saving}
+                  >
+                    {saving ? <RotateLoader color="#3178C6" size={8} /> : <><FaSave /> Save</>}
+                  </button>
+                ) : (
+                  <button
+                    className="text-sm cursor-pointer text-[#3178C6] flex items-center gap-1"
+                    onClick={handleEditBtn}
+                  >
+                    <FaEdit /> Edit
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                maxLength={20}
+                className={`h-auto p-2 text-xl text-center flex-wrap font-bold text-[#3178C6] capitalize mt-2 w-full bg-transparent border-[#3178C6] focus:outline-none transition ${editBtnActive ? 'bg-white border-b-2' : 'bg-gray-100 cursor-default border-none'}`}
+                placeholder='Your Profession...'
+                onChange={handleProfessionInput}
+                value={professionInput}
+                disabled={!editBtnActive}
+              />
+            </div>
           </div>
           <div className="w-full md:w-2/3 px-4 py-6 bg-white/90 shadow-lg rounded-xl flex flex-col justify-center">
             <h2 className="text-3xl font-bold text-gray-700">
               {currentUser?.name || (
                 <div className="h-12 ml-90 flex justify-start items-center">
-                    <RotateLoader color="#2563eb" />
+                  <RotateLoader color="#2563eb" />
                 </div>
-                )}
+              )}
             </h2>
             <p className="text-lg text-gray-600">{currentUser?.email}</p>
           </div>
