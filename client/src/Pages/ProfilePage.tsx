@@ -7,12 +7,14 @@ import type { UserType } from '../utils/types/user';
 import profileApiHelper from '../utils/api/profileApiHelper';
 import skillApiHelper from '../utils/api/skillApiHelper';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaEdit, FaSave } from 'react-icons/fa';
+import { FaCheck, FaEdit, FaSave } from 'react-icons/fa';
 import { RotateLoader } from 'react-spinners';
+import { IoPersonAdd } from 'react-icons/io5';
 
 const Profile = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [isFollowBtnActive, setisFollowBtnActive] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserType>();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,6 +74,10 @@ const Profile = () => {
     }
   };
 
+  const handleFollowBtn = () => {
+    setisFollowBtnActive(!isFollowBtnActive);
+  }
+
   return (
     <div className="w-full min-h-screen flex flex-col">
       <Navbar />
@@ -79,7 +85,8 @@ const Profile = () => {
       <main className="flex-grow w-full max-w-6xl mx-auto px-4 my-8 flex flex-col gap-8">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-1/3 px-4 py-6 flex flex-col items-center bg-white/90 shadow-lg rounded-xl">
+          {/* Header Left */}
+          <div className="w-full md:w-1/3 p-4 relative flex flex-col items-center bg-white/90 shadow-lg rounded-xl">
             <img
               src={currentUser?.photo || Avatar}
               className="w-24 h-24 rounded-full border-4 border-[#3178C6] shadow"
@@ -118,15 +125,30 @@ const Profile = () => {
               />
             </div>
           </div>
-          <div className="w-full md:w-2/3 px-4 py-6 bg-white/90 shadow-lg rounded-xl flex flex-col justify-center">
-            <h2 className="text-3xl font-bold text-gray-700">
-              {currentUser?.name || (
-                <div className="h-12 ml-90 flex justify-start items-center">
-                  <RotateLoader color="#2563eb" />
-                </div>
-              )}
-            </h2>
-            <p className="text-lg text-gray-600">{currentUser?.email}</p>
+          {/* Header Right */}
+          <div className={`w-full md:w-2/3 p-4 bg-white/90 shadow-lg rounded-xl flex flex-col gap-2 ${id ? "justify-between" : "justify-center"}`}>
+            {id &&
+              <div className='w-full mr-4 flex justify-end '>
+                <button
+                onClick={handleFollowBtn}
+                  className={`text-xl px-3 py-1 flex gap-1 items-center cursor-pointer border-2 rounded-xl transition ${!isFollowBtnActive ? "bg-[#3178C6] text-white hover:bg-[#225a8c]" : "bg-transparent border-[#3178C6] text-[#3178C6]"}`}
+                >
+                  {!isFollowBtnActive ? <IoPersonAdd /> : <FaCheck/>} 
+                  {!isFollowBtnActive ? "Follow" : "Following"}
+                </button>
+              </div>
+            }
+            <div>
+              <h2 className="text-3xl font-bold text-gray-700">
+                {currentUser?.name || (
+                  <div className="h-12 ml-90 flex justify-start items-center">
+                    <RotateLoader color="#2563eb" />
+                  </div>
+                )}
+              </h2>
+              <p className="text-lg text-gray-500">{currentUser?.email}</p>
+            </div>
+            <div className='mt-4'>Followers 20 | Following 20</div>
           </div>
         </div>
 
