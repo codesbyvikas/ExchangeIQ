@@ -6,11 +6,13 @@ import type { Skill } from '../utils/types/skill';
 import type { UserType } from '../utils/types/user';
 import profileApiHelper from '../utils/api/profileApiHelper';
 import skillApiHelper from '../utils/api/skillApiHelper';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { FaEdit, FaSave } from 'react-icons/fa';
 import { RotateLoader } from 'react-spinners';
 
 const Profile = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
   const [currentUser, setCurrentUser] = useState<UserType>();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,16 +20,18 @@ const Profile = () => {
   const [professionInput, setProfessionInput] = useState('');
   const [characterLength, setCharacterLength] = useState(0);
   const [saving, setSaving] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
-        const [profileRes, skillsRes] = await Promise.all([
-          profileApiHelper.getSelfProfile(),
-          skillApiHelper.getAllSkills(),
-        ]);
+        let profileRes;
+        if (id) {
+          profileRes = await profileApiHelper.getUserById(id);
+        } else {
+          profileRes = await profileApiHelper.getSelfProfile();
+        }
+        const skillsRes = await skillApiHelper.getAllSkills();
         setCurrentUser(profileRes);
         setSkills(skillsRes);
         setProfessionInput(profileRes.profession || '');
@@ -39,7 +43,7 @@ const Profile = () => {
       }
     };
     fetchProfile();
-  }, []);
+  }, [id]);
 
   const getSkillDetails = (ids: string[]) =>
     skills.filter(skill => ids.includes(skill._id));
@@ -82,30 +86,32 @@ const Profile = () => {
               alt="Avatar"
             />
             <div className='mt-2 relative w-full'>
-              <div className={`w-full px-1 absolute top-0 flex items-center ${!editBtnActive ? 'justify-end' : 'justify-between'}`}>
-                {editBtnActive && <span className='text-xs text-gray-600 font-extralight'>max {characterLength}/20</span>}
-                {editBtnActive ? (
-                  <button
-                    className="text-sm cursor-pointer text-[#3178C6] flex items-center gap-0.5"
-                    onClick={handleSaveProfession}
-                    disabled={saving}
-                  >
-                    {saving ? <RotateLoader color="#3178C6" size={8} /> : <><FaSave /> Save</>}
-                  </button>
-                ) : (
-                  <button
-                    className="text-sm cursor-pointer text-[#3178C6] flex items-center gap-1"
-                    onClick={handleEditBtn}
-                  >
-                    <FaEdit /> Edit
-                  </button>
-                )}
-              </div>
+              {!id &&
+                <div className={`w-full px-1 absolute top-0 flex items-center ${!editBtnActive ? 'justify-end' : 'justify-between'}`}>
+                  {editBtnActive && <span className='text-xs text-gray-600 font-extralight'>max {characterLength}/20</span>}
+                  {editBtnActive ? (
+                    <button
+                      className="text-sm cursor-pointer text-[#3178C6] flex items-center gap-0.5"
+                      onClick={handleSaveProfession}
+                      disabled={saving}
+                    >
+                      {saving ? <RotateLoader color="#3178C6" size={8} /> : <><FaSave /> Save</>}
+                    </button>
+                  ) : (
+                    <button
+                      className="text-sm cursor-pointer text-[#3178C6] flex items-center gap-1"
+                      onClick={handleEditBtn}
+                    >
+                      <FaEdit /> Edit
+                    </button>
+                  )}
+                </div>
+              }
               <input
                 type="text"
                 maxLength={20}
                 className={`h-auto p-2 text-xl text-center flex-wrap font-bold text-[#3178C6] capitalize mt-2 w-full bg-transparent border-[#3178C6] focus:outline-none transition ${editBtnActive ? 'bg-white border-b-2' : 'bg-gray-100 cursor-default border-none'}`}
-                placeholder='Your Profession...'
+                placeholder={!id ? "Your Profession..." : "Student"}
                 onChange={handleProfessionInput}
                 value={professionInput}
                 disabled={!editBtnActive}
@@ -133,12 +139,14 @@ const Profile = () => {
                 <span className="inline-block w-3 h-3 bg-[#3178C6] rounded-full"></span>
                 Wish to Learn
               </h3>
-              <button
-                onClick={() => navigate('/profile/skills/learn')}
-                className="text-sm px-3 py-1 bg-[#3178C6] text-white rounded hover:bg-[#225a8c] transition"
-              >
-                Edit
-              </button>
+              {!id &&
+                <button
+                  onClick={() => navigate('/profile/skills/learn')}
+                  className="text-sm px-3 py-1 bg-[#3178C6] text-white rounded hover:bg-[#225a8c] transition"
+                >
+                  Edit
+                </button>
+              }
             </div>
             {isLoading ? (
               <div className="flex justify-center items-center h-24">
@@ -167,12 +175,14 @@ const Profile = () => {
                 <span className="inline-block w-3 h-3 bg-[#3178C6] rounded-full"></span>
                 Wish to Teach
               </h3>
-              <button
-                onClick={() => navigate('/profile/skills/teach')}
-                className="text-sm px-3 py-1 bg-[#3178C6] text-white rounded hover:bg-[#225a8c] transition"
-              >
-                Edit
-              </button>
+              {!id &&
+                <button
+                  onClick={() => navigate('/profile/skills/teach')}
+                  className="text-sm px-3 py-1 bg-[#3178C6] text-white rounded hover:bg-[#225a8c] transition"
+                >
+                  Edit
+                </button>
+              }
             </div>
             {isLoading ? (
               <div className="flex justify-center items-center h-24">
