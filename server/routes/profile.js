@@ -79,7 +79,7 @@ router.post('/edit', authCheck, async (req, res) => {
 router.get('/me', authCheck, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select(
-      "name email photo profession skillsToTeach skillsToLearn createdAt"
+      "name email photo profession followers following skillsToTeach skillsToLearn createdAt"
     );
 
     if (!user) {
@@ -100,7 +100,7 @@ router.get('/me', authCheck, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select(
-      "name email photo profession skillsToTeach skillsToLearn createdAt"
+      "name email photo profession followers following skillsToTeach skillsToLearn createdAt"
     );
 
     if (!user) {
@@ -111,6 +111,46 @@ router.get('/:id', async (req, res) => {
   } catch (err) {
     console.error("Error fetching user by ID:", err);
     res.status(500).send("Internal server error");
+  }
+});
+
+router.post('/:id/follow', authCheck, async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const currentUserId = req.user._id;
+
+    if(targetUserId === currentUserId.toString()) {
+      return res.status(400).json({ error: "You cannot follow yourself." });
+    }
+
+    await User.findByIdAndUpdate(targetUserId, {
+      $addToSet: { followers: currentUserId }
+    })
+    await User.findByIdAndUpdate(currentUserId, {
+      $addToSet: { following: targetUserId }
+    });
+
+    res.json({ message: "Followed successfully" });
+  } catch(error){
+    res.status(500).json({error: "Failed to follow user"});
+  }
+});
+
+router.post('/:id/unfollow', authCheck, async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const currentUserId = req.user._id;
+
+    await User.findByIdAndUpdate(targetUserId, {
+      $pull: { followers: currentUserId }
+    })
+    await User.findByIdAndUpdate(currentUserId, {
+      $pull: { following: targetUserId }
+    });
+
+    res.json({ message: "Unfollowed successfully" });
+  } catch(error){
+    res.status(500).json({error: "Failed to unfollow user"});
   }
 });
 

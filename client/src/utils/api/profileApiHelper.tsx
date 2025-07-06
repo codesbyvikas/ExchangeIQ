@@ -19,6 +19,8 @@ interface UpdatedUser {
   email: string;
   photo?: string;
   profession: string;
+  followers: string[],
+  following: string[],
   skillsToTeach: string[];
   skillsToLearn: string[];
   createdAt: string;
@@ -68,6 +70,24 @@ const profileApiHelper = {
     } catch (err) {
       console.error(`Error fetching user with ID ${id}:`, err);
       throw err;
+    }
+  },
+
+  followUser: async (id: string) => {
+    try{
+      const res = await axios.post(`${API_URL}/profile/${id}/follow`, {}, { withCredentials: true });
+      return res.data;
+    } catch (error: any) {
+      throw error.response?.data || { error: "Failed to follow user" };
+    }
+  },
+
+  unfollowUser: async (id: string) => {
+    try{
+      const res = await axios.post(`${API_URL}/profile/${id}/unfollow`, {}, { withCredentials: true });
+      return res.data;
+    } catch (error: any) {
+      throw error.response?.data || { error: "Failed to unfollow user" };
     }
   },
 

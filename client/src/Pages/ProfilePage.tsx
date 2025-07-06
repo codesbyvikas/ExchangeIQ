@@ -16,6 +16,7 @@ const Profile = () => {
   const { id } = useParams();
   const [isFollowBtnActive, setisFollowBtnActive] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserType>();
+  const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editBtnActive, setEditBtnActive] = useState(false);
@@ -28,16 +29,25 @@ const Profile = () => {
       try {
         setIsLoading(true);
         let profileRes;
+        let selfProfile;
         if (id) {
           profileRes = await profileApiHelper.getUserById(id);
+          selfProfile = await profileApiHelper.getSelfProfile();
+          setLoggedInUserId(selfProfile._id);
         } else {
           profileRes = await profileApiHelper.getSelfProfile();
+          setLoggedInUserId(profileRes._id);
         }
         const skillsRes = await skillApiHelper.getAllSkills();
         setCurrentUser(profileRes);
+        console.log(currentUser)
         setSkills(skillsRes);
         setProfessionInput(profileRes.profession || '');
         setCharacterLength((profileRes.profession || '').length);
+
+        if (id && profileRes.followers && selfProfile) {
+          setisFollowBtnActive(profileRes.followers.includes(selfProfile._id));
+        }
       } catch (error) {
         console.error('Error loading profile:', error);
       } finally {
@@ -74,7 +84,27 @@ const Profile = () => {
     }
   };
 
-  const handleFollowBtn = () => {
+  const handleFollowBtn = async () => {
+    if (!currentUser) return;
+    try {
+      if (isFollowBtnActive) {
+        await profileApiHelper.unfollowUser(currentUser._id);
+        setisFollowBtnActive(false);
+        setCurrentUser({
+          ...currentUser,
+          followers: currentUser.followers.filter(f => f !== loggedInUserId)
+        })
+      } else {
+        await profileApiHelper.followUser(currentUser._id);
+        setisFollowBtnActive(true);
+        setCurrentUser({
+          ...currentUser,
+          followers: [...currentUser.followers, loggedInUserId]
+        });
+      }
+    } catch (error) {
+      console.error('Failed to follow:', error);
+    }
     setisFollowBtnActive(!isFollowBtnActive);
   }
 
@@ -130,10 +160,10 @@ const Profile = () => {
             {id &&
               <div className='w-full mr-4 flex justify-end '>
                 <button
-                onClick={handleFollowBtn}
+                  onClick={handleFollowBtn}
                   className={`text-xl px-3 py-1 flex gap-1 items-center cursor-pointer border-2 rounded-xl transition ${!isFollowBtnActive ? "bg-[#3178C6] text-white hover:bg-[#225a8c]" : "bg-transparent border-[#3178C6] text-[#3178C6]"}`}
                 >
-                  {!isFollowBtnActive ? <IoPersonAdd /> : <FaCheck/>} 
+                  {!isFollowBtnActive ? <IoPersonAdd /> : <FaCheck />}
                   {!isFollowBtnActive ? "Follow" : "Following"}
                 </button>
               </div>
@@ -148,7 +178,9 @@ const Profile = () => {
               </h2>
               <p className="text-lg text-gray-500">{currentUser?.email}</p>
             </div>
-            <div className='mt-4'>Followers 20 | Following 20</div>
+            <div className='mt-4 font-semibold'>
+              Followers {currentUser?.followers?.length ?? 0} | Following {currentUser?.following?.length ?? 0}
+            </div>
           </div>
         </div>
 

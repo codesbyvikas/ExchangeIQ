@@ -4,6 +4,8 @@ export interface UserType {
   email: string;
   photo?: string;
   profession: string;
+  followers: string[];
+  following: string[];
   skillsToTeach: string[];
   skillsToLearn: string[];
   createdAt: string;
