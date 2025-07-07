@@ -53,8 +53,8 @@ app.use("/profile", require("./routes/profile"));
 app.use("/skill", require("./routes/skill"));
 app.use("/post", require("./routes/post"));
 app.use("/invitation", require("./routes/invitation"));
-app.use("/messages", require("./routes/message"));
-app.use("/chat", require("./routes/chat"))
+app.use("/chat", require("./routes/chat"));
+app.use("/media", require("./routes/chatMedia"));
 
 // Socket.IO setup
 const io = new Server(server, {
