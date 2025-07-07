@@ -5,6 +5,7 @@ const authCheck = require("../middlewares/auth");
 
 const router = express.Router();
 
+
 // File type validation
 const allowedTypes = {
   image: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
@@ -13,15 +14,13 @@ const allowedTypes = {
   document: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 };
 
-// File size limits (in bytes)
 const sizeLimits = {
-  image: 5 * 1024 * 1024, // 5MB
-  video: 50 * 1024 * 1024, // 50MB
-  audio: 10 * 1024 * 1024, // 10MB
-  document: 10 * 1024 * 1024 // 10MB
+  image: 5 * 1024 * 1024,
+  video: 50 * 1024 * 1024,
+  audio: 10 * 1024 * 1024,
+  document: 10 * 1024 * 1024
 };
 
-// Helper function to determine file type
 const getFileType = (mimetype) => {
   if (allowedTypes.image.includes(mimetype)) return 'image';
   if (allowedTypes.video.includes(mimetype)) return 'video';
@@ -30,7 +29,6 @@ const getFileType = (mimetype) => {
   return null;
 };
 
-// File validation middleware
 const validateFile = (req, res, next) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded' });
@@ -38,7 +36,7 @@ const validateFile = (req, res, next) => {
 
   const fileType = getFileType(req.file.mimetype);
   if (!fileType) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       message: 'Unsupported file type',
       supportedTypes: Object.keys(allowedTypes)
     });
@@ -46,9 +44,8 @@ const validateFile = (req, res, next) => {
 
   const sizeLimit = sizeLimits[fileType];
   if (req.file.size > sizeLimit) {
-    return res.status(400).json({ 
-      message: `File too large. Maximum size for ${fileType} is ${sizeLimit / (1024 * 1024)}MB`,
-      maxSize: sizeLimit
+    return res.status(400).json({
+      message: `File too large. Maximum size for ${fileType} is ${sizeLimit / (1024 * 1024)}MB`
     });
   }
 
@@ -56,110 +53,132 @@ const validateFile = (req, res, next) => {
   next();
 };
 
-// Upload endpoint with enhanced validation
+// Fixed upload route with better error handling and logging
 router.post("/upload", authCheck, upload.single("file"), validateFile, async (req, res) => {
   try {
-    const { chatId } = req.body;
-    
-    // Optional: Validate chat access if chatId is provided
-    if (chatId) {
-      const Chat = require('../models/chat');
-      const chat = await Chat.findById(chatId);
-      if (!chat || !chat.participants.includes(req.user._id)) {
-        return res.status(403).json({ message: 'Not authorized for this chat' });
-      }
-    }
+    // console.log("🔁 /upload route triggered");
+    // console.log("👤 User ID:", req.user._id);
+    // console.log("📁 Received file:", req.file.originalname);
+    // console.log("📦 MIME type:", req.file.mimetype);
+    // console.log("📏 Size:", req.file.size);
+    // console.log("📋 File type detected:", req.fileType);
 
     const streamUpload = (fileBuffer) => {
       return new Promise((resolve, reject) => {
         const uploadOptions = {
           resource_type: "auto",
-          folder: "chat_media", // Organize files in folders
+          folder: "chat_media",
           use_filename: true,
           unique_filename: true,
-          // Add transformation for images
           ...(req.fileType === 'image' && {
             transformation: [
               { quality: "auto:good", format: "auto" },
               { width: 1024, height: 1024, crop: "limit" }
             ]
           }),
-          // Add duration limit for videos
           ...(req.fileType === 'video' && {
             video_codec: "auto",
             quality: "auto:good"
           })
         };
 
+        // console.log("📤 Starting Cloudinary upload with options:", uploadOptions);
+
         const stream = cloudinary.uploader.upload_stream(
           uploadOptions,
           (error, result) => {
             if (error) {
-              console.error('Cloudinary upload error:', error);
+              // console.error("❌ Cloudinary upload error:", error);
+              // console.error("❌ Error details:", JSON.stringify(error, null, 2));
               reject(error);
             } else {
+              // console.log("✅ Upload success!");
+              // console.log("🌐 Secure URL:", result.secure_url);
+              // console.log("🧾 Public ID:", result.public_id);
+              // console.log("📊 Full result:", JSON.stringify(result, null, 2));
               resolve(result);
             }
           }
         );
+
+        // Add timeout to catch hanging uploads
+        const uploadTimeout = setTimeout(() => {
+          // console.error("⏰ Upload timeout after 30 seconds");
+          reject(new Error("Upload timeout"));
+        }, 30000);
+
+        // Check if fileBuffer exists and has content
+        if (!fileBuffer) {
+          // console.error("🚨 fileBuffer is undefined or null");
+          reject(new Error("File buffer is missing"));
+          return;
+        }
+
+        // console.log("📦 File buffer size:", fileBuffer.length);
+        // console.log("🚀 Initiating stream.end()...");
+        
         stream.end(fileBuffer);
+        
+        // Clear timeout on successful completion
+        stream.on('finish', () => {
+          // console.log("📤 Stream finished successfully");
+          clearTimeout(uploadTimeout);
+        });
+        
+        stream.on('error', (streamError) => {
+          // console.error("❌ Stream error:", streamError);
+          clearTimeout(uploadTimeout);
+          reject(streamError);
+        });
       });
     };
 
+    // Upload to Cloudinary
     const result = await streamUpload(req.file.buffer);
+    
+    // This should now print the result
+    // console.log("🎉 Final upload result:", result);
 
-    // Log upload for monitoring
-    console.log(`File uploaded: ${result.public_id} by user ${req.user._id}`);
-
-    res.status(200).json({
+    // Send response with all necessary fields for the chat
+    const response = {
+      success: true,
       url: result.secure_url,
       publicId: result.public_id,
       mediaType: req.fileType,
       originalName: req.file.originalname,
       size: req.file.size,
-      duration: result.duration || null, // For videos/audio
+      duration: result.duration || null,
       width: result.width || null,
       height: result.height || null,
-      format: result.format
-    });
-  } catch (error) {
-    console.error("Upload failed:", error);
-    res.status(500).json({ 
-      message: "Media upload failed",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
+      format: result.format,
+      // Additional fields that might be useful
+      resourceType: result.resource_type,
+      createdAt: result.created_at
+    };
 
-// Delete uploaded media
-router.delete("/delete/:publicId", authCheck, async (req, res) => {
-  try {
-    const { publicId } = req.params;
+    // console.log("📤 Sending response:", JSON.stringify(response, null, 2));
     
-    if (!publicId) {
-      return res.status(400).json({ message: 'Public ID required' });
-    }
+    res.status(200).json(response);
 
-    // Optional: Add authorization check to ensure user owns the media
-    // This would require storing media ownership in your database
-
-    const result = await cloudinary.uploader.destroy(publicId, {
-      resource_type: "auto"
-    });
-
-    if (result.result === 'ok') {
-      res.json({ message: 'Media deleted successfully' });
-    } else {
-      res.status(404).json({ message: 'Media not found or already deleted' });
-    }
   } catch (error) {
-    console.error("Delete failed:", error);
-    res.status(500).json({ 
-      message: "Media deletion failed",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    // console.error("❌ Upload failed with error:", error);
+    // console.error("❌ Error stack:", error.stack);
+    
+    res.status(500).json({
+      success: false,
+      message: "Media upload failed",
+      error: error.message,
+      // Add more error details for debugging
+      errorType: error.name,
+      ...(process.env.NODE_ENV === 'development' && {
+        stack: error.stack
+      })
     });
   }
 });
+
+
+
 
 // Get media info
 router.get("/info/:publicId", authCheck, async (req, res) => {
@@ -180,7 +199,7 @@ router.get("/info/:publicId", authCheck, async (req, res) => {
       createdAt: result.created_at
     });
   } catch (error) {
-    console.error("Info fetch failed:", error);
+    // console.error("Info fetch failed:", error);
     if (error.http_code === 404) {
       res.status(404).json({ message: 'Media not found' });
     } else {

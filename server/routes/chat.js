@@ -52,6 +52,7 @@ const formatChatForUser = (chat, userId) => {
       text: msg.text || '',
       mediaUrl: msg.mediaUrl || null,
       mediaType: msg.mediaType || null,
+      publicId: msg.publicId || null, // Added publicId to response
       timestamp: msg.timestamp.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit'
@@ -86,7 +87,6 @@ router.get('/', authCheck, async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    // Get total count for pagination
     const totalChats = await Chat.countDocuments({
       participants: userId
     });
@@ -112,16 +112,24 @@ router.get('/', authCheck, async (req, res) => {
   }
 });
 
-// Send a message
+// Send a message - CORRECTED VERSION
 router.post('/:chatId/message', authCheck, async (req, res) => {
   try {
     const { chatId } = req.params;
     const { text, mediaUrl, mediaType, publicId } = req.body;
     const userId = req.user._id;
 
+    // Enhanced debug logging
+    console.log('=== MESSAGE SEND DEBUG ===');
+    console.log('Chat ID:', chatId);
+    console.log('User ID:', userId);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Request headers:', req.headers['content-type']);
+
     // Validate input
     const validationErrors = validateMessage(text, mediaUrl, mediaType);
     if (validationErrors.length > 0) {
+      console.log('❌ Validation errors:', validationErrors);
       return res.status(400).json({
         message: 'Validation failed',
         errors: validationErrors
@@ -129,7 +137,11 @@ router.post('/:chatId/message', authCheck, async (req, res) => {
     }
 
     // Validate that either text or media is provided
-    if (!text?.trim() && !mediaUrl) {
+    const hasText = text && text.trim().length > 0;
+    const hasMedia = mediaUrl && mediaUrl.trim().length > 0;
+    
+    if (!hasText && !hasMedia) {
+      console.log('❌ Neither text nor media provided');
       return res.status(400).json({
         message: 'Either text or media must be provided'
       });
@@ -138,39 +150,60 @@ router.post('/:chatId/message', authCheck, async (req, res) => {
     // Find and validate chat
     const chat = await Chat.findById(chatId);
     if (!chat) {
+      console.log('❌ Chat not found:', chatId);
       return res.status(404).json({ message: 'Chat not found' });
     }
 
     if (!chat.participants.includes(userId)) {
+      console.log('❌ User not in chat participants');
       return res.status(403).json({ message: 'Not authorized to send messages in this chat' });
     }
 
-    // Create new message
+    // Create new message with explicit field handling
     const newMessage = {
       sender: userId,
-      text: text?.trim() || '',
-      mediaUrl: mediaUrl || null,
-      mediaType: mediaType || null,
-      publicId: publicId || null,
+      text: hasText ? text.trim() : '',
+      mediaUrl: hasMedia ? mediaUrl.trim() : null,
+      mediaType: (hasMedia && mediaType) ? mediaType.trim() : null,
+      publicId: (hasMedia && publicId) ? publicId.trim() : null,
       timestamp: new Date(),
       isRead: false
     };
 
-    // Add message and update chat
+    console.log('📝 Creating message object:', JSON.stringify(newMessage, null, 2));
+
+    // Add message to chat
     chat.messages.push(newMessage);
     chat.lastMessage = new Date();
+    
+    console.log('💾 Saving chat to database...');
     await chat.save();
+    console.log('✅ Chat saved successfully');
+    
+    // Re-fetch the chat to get the populated message
+    const updatedChat = await Chat.findById(chatId)
+      .populate('messages.sender', 'name');
+    
+    const addedMessage = updatedChat.messages[updatedChat.messages.length - 1];
 
-    // Populate sender info for response
-    await chat.populate('messages.sender', 'name');
-    const addedMessage = chat.messages[chat.messages.length - 1];
-
-    const responseMessage = {
+    console.log('📨 Message saved to database:', {
       id: addedMessage._id,
-      sender: addedMessage.sender._id.toString() === userId.toString() ? 'you' : 'them',
       text: addedMessage.text,
       mediaUrl: addedMessage.mediaUrl,
       mediaType: addedMessage.mediaType,
+      publicId: addedMessage.publicId,
+      sender: addedMessage.sender.name,
+      timestamp: addedMessage.timestamp
+    });
+
+    // Format response message
+    const responseMessage = {
+      id: addedMessage._id,
+      sender: addedMessage.sender._id.toString() === userId.toString() ? 'you' : 'them',
+      text: addedMessage.text || '',
+      mediaUrl: addedMessage.mediaUrl || null,
+      mediaType: addedMessage.mediaType || null,
+      publicId: addedMessage.publicId || null,
       timestamp: addedMessage.timestamp.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit'
@@ -179,12 +212,21 @@ router.post('/:chatId/message', authCheck, async (req, res) => {
       isRead: addedMessage.isRead
     };
 
+    console.log('📤 Sending response:', JSON.stringify(responseMessage, null, 2));
+    console.log('=== END MESSAGE SEND DEBUG ===');
+
     res.status(201).json(responseMessage);
+    
   } catch (error) {
-    console.error('Error sending message:', error);
+    console.error('❌ Error sending message:', error);
+    console.error('❌ Error stack:', error.stack);
+    
     res.status(500).json({
       message: 'Failed to send message',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message,
+      ...(process.env.NODE_ENV === 'development' && {
+        stack: error.stack
+      })
     });
   }
 });
@@ -316,6 +358,7 @@ router.delete('/:chatId/message/:messageId', authCheck, async (req, res) => {
     message.text = 'This message was deleted';
     message.mediaUrl = null;
     message.mediaType = null;
+    message.publicId = null;
 
     await chat.save();
 
