@@ -1,3 +1,4 @@
+// index.js - Main server file for Render deployment
 const express = require("express");
 const session = require("express-session");
 const passport = require("passport");
@@ -12,42 +13,69 @@ dotenv.config();
 require("./config/google");
 
 const app = express();
-const server = http.createServer(app); 
+const server = http.createServer(app);
 
 app.use(express.json());
 
-//  Enable CORS for frontend
+// CORS configuration for production
+const allowedOrigins = [
+  "http://localhost:5173", // Development
+  "https://your-frontend-domain.com", // Replace with your actual frontend domain
+  process.env.FRONTEND_URL, // Add this to your Render environment variables
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
 
-//  MongoDB Connection
-mongoose.connect(process.env.MONGO_URI).then(() => {
-  console.log("✅ Database connected");
-  console.log("📦 Using database:", mongoose.connection.name);
-});
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("✅ Database connected");
+    console.log("📦 Using database:", mongoose.connection.name);
+  })
+  .catch((err) => {
+    console.error("❌ Database connection failed:", err);
+    process.exit(1);
+  });
 
-//  Session Middleware
+// Session Middleware with production settings
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "defaultsecret",
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,
+    secure: process.env.NODE_ENV === "production", // Use secure cookies in production
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24,
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Required for cross-origin cookies
   },
 });
 
-//  Passport Middleware
+// Passport Middleware
 app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-//  Routes
+// Health check endpoint for Render
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
+// Routes
 app.use("/auth", require("./routes/auth"));
 app.use("/profile", require("./routes/profile"));
 app.use("/skill", require("./routes/skill"));
@@ -56,20 +84,50 @@ app.use("/invitation", require("./routes/invitation"));
 app.use("/chat", require("./routes/chat"));
 app.use("/media", require("./routes/chatMedia"));
 
-// Socket.IO setup
+// Socket.IO setup with production configuration
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true,
+    methods: ["GET", "POST"],
   },
+  // Additional production settings
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  transports: ["websocket", "polling"],
 });
+
 io.use(sharedSession(sessionMiddleware, { autoSave: true }));
 
 // Load socket logic
 require("./sockets/chatSocket")(io);
 
-//  Start Server with Socket.IO bound
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on PORT: ${PORT}`);
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Error:", err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
 });
+
+// Handle 404 routes
+app.use("*", (req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down gracefully");
+  server.close(() => {
+    console.log("Process terminated");
+    mongoose.connection.close();
+  });
+});
+
+// Start Server with Socket.IO bound
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on PORT: ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+});
+
+// Export for testing purposes
+module.exports = { app, server, io };
