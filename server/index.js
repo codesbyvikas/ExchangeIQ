@@ -17,6 +17,9 @@ const server = http.createServer(app);
 
 app.use(express.json());
 
+// Trust proxy for Render (needed for secure cookies to be set)
+app.set("trust proxy", 1);
+
 // CORS configuration for production
 const allowedOrigins = [
   "http://localhost:5173", 
