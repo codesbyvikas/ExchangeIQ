@@ -129,7 +129,7 @@ const ChatPage = () => {
   const canSend = selectedChat && !isUploading && (message.trim() || mediaPreview);
 
   return (
-    <div className="flex h-screen w-screen font-sans overflow-hidden" style={{ background: 'linear-gradient(to bottom, #E0F2FF, #FDECEA)' }}>
+    <div className="flex h-dvh w-screen font-sans overflow-hidden" style={{ background: 'linear-gradient(to bottom, #E0F2FF, #FDECEA)' }}>
       {/* Sidebar */}
       <div className="w-72 bg-[#3178C6] text-white flex flex-col p-4 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">

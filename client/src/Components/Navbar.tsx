@@ -45,11 +45,11 @@ const Navbar = () => {
   return (
     <div className="w-full bg-[#E0F2FF] relative">
       {/* Top section */}
-      <div className="w-full pr-10 flex justify-between items-center">
-        <div className="pl-4 flex flex-col">
+      <div className="w-full pr-10 sm:pr-4 flex justify-between items-center">
+        <div className="pl-4 sm:pl-2 flex flex-col">
           <img className="w-60 h-20 object-cover" src={Logo} alt="ExchangeIQ Logo" />
           <h2
-            className="font-bold ml-10 text-xl text-[#3178C6] mb-2 cursor-pointer hover:underline transition"
+            className="font-bold ml-10 sm:ml-4 text-xl text-[#3178C6] mb-2 cursor-pointer hover:underline transition"
             onClick={handleClick}
           >
             <span>{user ? `Hello, ${user.name}` : 'Please login'}</span>
@@ -109,8 +109,8 @@ const Navbar = () => {
             <Link to="/invitations" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
               <li>Invitations</li>
             </Link>
-            <Link to="/friends" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
-              <li>Friends</li>
+            <Link to="/chat" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
+              <li>Chats</li>
             </Link>
             <Link to="/skills" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
               <li>Skills</li>

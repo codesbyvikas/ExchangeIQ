@@ -106,7 +106,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="w-full min-h-screen flex flex-col">
+    <div className="w-full min-h-dvh flex flex-col">
       <Navbar />
 
       <main className="flex-grow w-full max-w-6xl mx-auto px-4 my-8 flex flex-col gap-8">
