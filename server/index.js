@@ -20,7 +20,7 @@ app.use(express.json());
 // CORS configuration for production
 const allowedOrigins = [
   "http://localhost:5173", 
-  process.env.FRONTEND_URL, 
+  process.env.FRONTEND_BASE_URL, 
 ];
 
 app.use(
