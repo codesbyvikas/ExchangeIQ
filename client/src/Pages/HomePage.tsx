@@ -77,7 +77,7 @@ const Home = () => {
   const [exchangePosts, setExchangePosts] = useState<ExchangePostType[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [currentUser, setCurrentUser] = useState<UserType>();
-  const [sentInvitations, setSentInvitations] = useState<InvitationType[]>([]);
+  // const [sentInvitations, setSentInvitations] = useState<InvitationType[]>([]);
 
   const [isLoadingLearn, setIsLoadingLearn] = useState(false);
   const [isLoadingTeach, setIsLoadingTeach] = useState(false);
@@ -116,7 +116,7 @@ const Home = () => {
       const myTeachSkills = profileRes.skillsToTeach;
 
       const sent = invitationsRes.filter(i => i.fromUser._id === myId);
-      setSentInvitations(sent);
+      // setSentInvitations(sent);
 
       const otherUsersLearnPosts = learnPostsRes.filter(post => post.fromUser._id !== myId);
       const otherUsersTeachPosts = teachPostsRes.filter(post => post.fromUser._id !== myId);
@@ -205,7 +205,7 @@ const Home = () => {
       const myTeachSkills = currentUser.skillsToTeach;
 
       const sent = invitationsRes.filter(i => i.fromUser._id === myId);
-      setSentInvitations(sent);
+      // setSentInvitations(sent);
 
       const otherUsersLearnPosts = learnPostsRes.filter(post => post.fromUser._id !== myId);
       const otherUsersTeachPosts = teachPostsRes.filter(post => post.fromUser._id !== myId);
@@ -269,7 +269,7 @@ const Home = () => {
       const myTeachSkills = currentUser.skillsToTeach;
 
       const sent = invitationsRes.filter(i => i.fromUser._id === myId);
-      setSentInvitations(sent);
+      // setSentInvitations(sent);
 
       const otherUsersLearnPosts = learnPostsRes.filter(post => post.fromUser._id !== myId);
 
@@ -304,7 +304,7 @@ const Home = () => {
       const myLearnSkills = currentUser.skillsToLearn;
 
       const sent = invitationsRes.filter(i => i.fromUser._id === myId);
-      setSentInvitations(sent);
+      // setSentInvitations(sent);
 
       const otherUsersTeachPosts = teachPostsRes.filter(post => post.fromUser._id !== myId);
 

@@ -2,7 +2,7 @@ import Logo from '../../src/assets/logopng.png'
 
 const Signup = () => {
   const handleGoogleAuth = () => {
-  window.location.href = "http://localhost:3000/auth/google";
+  window.location.href = "https://exchangeiq.onrender.com/auth/google";
 };
 
   return (

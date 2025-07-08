@@ -8,7 +8,7 @@ const LoginRedirectHandler = () => {
   useEffect(() => {
     const checkProfile = async () => {
       try {
-        const res = await fetch("http://localhost:3000/auth/google/success", {
+        const res = await fetch("https://exchangeiq.onrender.com/auth/google/success", {
           credentials: "include",
         });
 

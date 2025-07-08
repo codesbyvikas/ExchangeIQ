@@ -203,7 +203,7 @@ const ChatPage = () => {
                       controls 
                       className="max-w-xs rounded"
                       onError={(e) => {
-                        console.error('Video failed to load:', msg.mediaUrl);
+                        console.error('Video failed to load:', msg.mediaUrl, e);
                       }}
                     />
                   )}
@@ -212,7 +212,7 @@ const ChatPage = () => {
                       src={msg.mediaUrl} 
                       controls 
                       onError={(e) => {
-                        console.error('Audio failed to load:', msg.mediaUrl);
+                        console.error('Audio failed to load:', msg.mediaUrl, e);
                       }}
                     />
                   )}

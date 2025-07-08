@@ -1,6 +1,5 @@
 import axios from "axios";
 import type { PostType } from "../types/post";
-import type { ChatUserType } from "../types/message";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
