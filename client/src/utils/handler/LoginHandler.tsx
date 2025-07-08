@@ -6,9 +6,10 @@ const LoginRedirectHandler = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
     const checkProfile = async () => {
       try {
-        const res = await fetch("https://exchangeiq.onrender.com/auth/google/success", {
+        const res = await fetch(`${API_URL}/auth/google/success`, {
           credentials: "include",
         });
 
