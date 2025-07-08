@@ -29,9 +29,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -60,10 +58,10 @@ const sessionMiddleware = session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+    secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Required for cross-origin cookies
+    maxAge: 1000 * 60 * 60 * 24, 
+    sameSite: "None",  
   },
 });
 
