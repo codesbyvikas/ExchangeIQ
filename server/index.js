@@ -21,6 +21,7 @@ app.set("trust proxy", 1);
 
 const allowedOrigins = [
   "http://localhost:5173", 
+  "http://localhost:5174", 
   process.env.FRONTEND_BASE_URL, 
 ];
 
@@ -53,7 +54,6 @@ mongoose
     process.exit(1);
   });
 
-// Session Middleware with production settings
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "defaultsecret",
   resave: false,
