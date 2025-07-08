@@ -132,7 +132,7 @@ const LearnSkillSelectPage: React.FC<LearnSkillSelectPageProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
+      <div className="flex items-center justify-center h-dvh bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
         <RotateLoader color="#3178C6" size={18} />
       </div>
     );

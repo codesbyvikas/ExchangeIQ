@@ -101,7 +101,7 @@ const InvitationPage = () => {
 
   if (loading) {
     return (
-      <div className="h-screen flex justify-center items-center">
+      <div className="h-dvh flex justify-center items-center">
         <RotateLoader color="#2563eb" />
       </div>
     );
@@ -109,12 +109,12 @@ const InvitationPage = () => {
 
   if (error) {
     return (
-      <div className="h-screen flex justify-center items-center text-red-500">{error}</div>
+      <div className="h-dvh flex justify-center items-center text-red-500">{error}</div>
     );
   }
 
   return (
-  <div className="flex flex-col min-h-screen">
+  <div className="flex flex-col min-h-dvh">
     <div className="fixed top-0 left-0 w-full z-50 bg-white">
       <Navbar />
     </div>

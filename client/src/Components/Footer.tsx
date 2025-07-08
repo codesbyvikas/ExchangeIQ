@@ -11,7 +11,7 @@ const Footer = () => {
           
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <img src="src/assets/logopng2.png" alt="ExchangeIQ Logo" className="w-auto h-10 drop-shadow" />
+            <img src="../assets/logopng2.png" alt="ExchangeIQ Logo" className="w-auto h-10 drop-shadow" />
           </div>
 
           {/* Navigation Links */}

@@ -373,7 +373,7 @@ const Home = () => {
   );
 
   return (
-  <div className="flex flex-col min-h-screen">
+  <div className="flex flex-col min-h-dvh">
     {/* Navbar */}
     <div className="fixed top-0 left-0 w-full z-50 bg-white">
       <Navbar />
@@ -384,7 +384,7 @@ const Home = () => {
       {/* Fixed Alert Component */}
       <Alert alert={alert} onClose={hideAlert} />
 
-      <div className="w-11/12 h-auto px-4 pb-10 flex flex-col gap-10">
+      <div className="w-11/12 h-auto px-4 pb-10 max-sm:p-0 flex flex-col gap-10">
         {/* Mutual Skill Exchanges */}
         {currentUser && (
           <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
