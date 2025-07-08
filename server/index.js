@@ -19,9 +19,8 @@ app.use(express.json());
 
 // CORS configuration for production
 const allowedOrigins = [
-  "http://localhost:5173", // Development
-  "https://your-frontend-domain.com", // Replace with your actual frontend domain
-  process.env.FRONTEND_URL, // Add this to your Render environment variables
+  "http://localhost:5173", 
+  process.env.FRONTEND_URL, 
 ];
 
 app.use(
