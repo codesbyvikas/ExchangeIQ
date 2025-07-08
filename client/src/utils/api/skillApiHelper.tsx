@@ -1,4 +1,3 @@
-// utils/api/skillApiHelper.ts
 import axios from "axios";
 import type { Skill } from "../types/skill";
 

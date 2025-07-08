@@ -1,4 +1,3 @@
-// src/utils/api/chatApiHelper.ts
 import axios from "axios";
 import type { ChatType, MessageType, UploadMediaResponse } from "../types/chat";
 

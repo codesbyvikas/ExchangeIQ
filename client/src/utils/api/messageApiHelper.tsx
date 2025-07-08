@@ -1,4 +1,3 @@
-// src/utils/api/messageApiHelper.ts
 import axios from 'axios';
 import type { MessageType } from '../types/message';
 

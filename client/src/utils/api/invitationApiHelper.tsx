@@ -1,4 +1,3 @@
-// src/utils/api/invitationApiHelper.ts
 import axios from "axios";
 import type {
   InvitationType,
