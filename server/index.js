@@ -17,10 +17,8 @@ const server = http.createServer(app);
 
 app.use(express.json());
 
-// Trust proxy for Render (needed for secure cookies to be set)
 app.set("trust proxy", 1);
 
-// CORS configuration for production
 const allowedOrigins = [
   "http://localhost:5173", 
   process.env.FRONTEND_BASE_URL, 
@@ -29,7 +27,6 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, postman)
       if (!origin) return callback(null, true);
       
       if (allowedOrigins.includes(origin)) {
@@ -65,7 +62,7 @@ const sessionMiddleware = session({
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24, 
-    sameSite: "None",  
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", 
   },
 });
 
