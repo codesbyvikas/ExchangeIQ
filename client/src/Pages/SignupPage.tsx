@@ -1,8 +1,9 @@
 import Logo from '../../src/assets/logopng.png'
 
 const Signup = () => {
+  const API_URL = import.meta.env.VITE_API_BASE_URL;
   const handleGoogleAuth = () => {
-  window.location.href = "http://localhost:3000/auth/google";
+  window.location.href =`${API_URL}/auth/google`;
 };
 
   return (
