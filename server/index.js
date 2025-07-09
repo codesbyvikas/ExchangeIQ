@@ -1,6 +1,10 @@
-// index.js - Main server file for Render deployment
+// 1. First, install connect-mongo
+// Run: npm install connect-mongo
+
+// 2. Update your index.js session configuration
 const express = require("express");
 const session = require("express-session");
+const MongoStore = require("connect-mongo"); // Add this import
 const passport = require("passport");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -16,7 +20,6 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.json());
-
 app.set("trust proxy", 1);
 
 const allowedOrigins = [
@@ -42,6 +45,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
 // MongoDB Connection
 mongoose
   .connect(process.env.MONGO_URI)
@@ -54,15 +58,21 @@ mongoose
     process.exit(1);
   });
 
+// FIXED SESSION CONFIGURATION FOR PRODUCTION
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "defaultsecret",
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    touchAfter: 24 * 3600, // lazy session update
+    ttl: 24 * 60 * 60, // 1 day session expiry
+  }),
   cookie: {
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24, 
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", 
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
   },
 });
 
@@ -92,7 +102,6 @@ const io = new Server(server, {
     credentials: true,
     methods: ["GET", "POST"],
   },
-  // Additional production settings
   pingTimeout: 60000,
   pingInterval: 25000,
   transports: ["websocket", "polling"],
@@ -128,6 +137,7 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on PORT: ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`💾 Session store: MongoDB`);
 });
 
 // Export for testing purposes
