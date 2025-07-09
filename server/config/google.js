@@ -5,7 +5,7 @@ const User = require("../models/user");
 // FIX: Use user._id instead of user.id
 passport.serializeUser((user, done) => {
     console.log("Serializing user:", user._id);
-    done(null, user._id);  // Changed from user.id to user._id
+    done(null, user._id);  
 });
 
 passport.deserializeUser(async (id, done) => {
