@@ -4,7 +4,7 @@
 // 2. Update your index.js session configuration
 const express = require("express");
 const session = require("express-session");
-const MongoStore = require("connect-mongo"); // Add this import
+const MongoStore = require("connect-mongo"); 
 const passport = require("passport");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -20,7 +20,7 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.json());
-app.set("trust proxy", 1);
+app.set('trust proxy', 1);
 
 const allowedOrigins = [
   "http://localhost:5173", 
@@ -63,17 +63,15 @@ const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "defaultsecret",
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,
-    touchAfter: 24 * 3600, 
-    ttl: 24 * 60 * 60, 
-  }),
   cookie: {
     secure: true,
     httpOnly: true,
-    sameSite: "None",
-    maxAge: 1000 * 60 * 60 * 24, 
+    sameSite: "none",
+    maxAge: 1000 * 60 * 60 * 24 * 30, 
   },
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+  }),
 });
 
 // Passport Middleware
