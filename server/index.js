@@ -65,14 +65,14 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGO_URI,
-    touchAfter: 24 * 3600, // lazy session update
-    ttl: 24 * 60 * 60, // 1 day session expiry
+    touchAfter: 24 * 3600, 
+    ttl: 24 * 60 * 60, 
   }),
   cookie: {
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    sameSite: "none",
+    sameSite: "None",
+    maxAge: 1000 * 60 * 60 * 24, 
   },
 });
 
