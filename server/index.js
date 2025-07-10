@@ -66,7 +66,7 @@ const sessionMiddleware = session({
   cookie: {
     secure: true,
     httpOnly: true,
-    sameSite: "none",
+    sameSite: 'None',
     maxAge: 1000 * 60 * 60 * 24 * 30, 
   },
   store: MongoStore.create({
