@@ -69,7 +69,7 @@ const sessionMiddleware = session({
     ttl: 24 * 60 * 60, // 1 day session expiry
   }),
   cookie: {
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
     sameSite: "None",
