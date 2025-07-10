@@ -37,7 +37,6 @@ const LoginRedirectHandler = () => {
         //   return navigate("/profile/profession");
         // }
 
-        // Default fallback
         return navigate("/");
       } catch (err) {
         console.error("Login check failed:", err);
