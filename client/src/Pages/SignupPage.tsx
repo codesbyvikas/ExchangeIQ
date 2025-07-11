@@ -1,8 +1,9 @@
 import Logo from '../../src/assets/logopng.png'
 
 const Signup = () => {
+  const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const handleGoogleAuth = () => {
-  window.location.href = "https://exchangeiq.onrender.com/auth/google";
+  window.location.href = `${VITE_API_BASE_URL}/auth/google`;
 };
 
   return (

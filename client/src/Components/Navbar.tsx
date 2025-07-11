@@ -45,11 +45,11 @@ const Navbar = () => {
   return (
     <div className="w-full bg-[#E0F2FF] relative">
       {/* Top section */}
-      <div className="w-full pr-10 max-sm:pr-4 flex justify-between items-center">
+      <div className="w-full pr-10 max-sm:pr-0 flex justify-between items-center">
         <div className="pl-4 max-sm:pl-2 flex flex-col">
           <img className="w-60 h-20 object-cover" src={Logo} alt="ExchangeIQ Logo" />
           <h2
-            className="font-bold ml-10 sm:ml-4 text-xl text-[#3178C6] mb-2 cursor-pointer hover:underline transition"
+            className="font-bold ml-10 max-sm:ml-4 text-xl text-[#3178C6] mb-2 cursor-pointer hover:underline transition"
             onClick={handleClick}
           >
             <span>{user ? `Hello, ${user.name}` : 'Please login'}</span>

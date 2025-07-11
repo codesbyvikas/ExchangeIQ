@@ -1,5 +1,6 @@
 import { FaGithub, FaLinkedin, FaEnvelope } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import LogoPng2 from '../assets/logopng2.png'
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ const Footer = () => {
           
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <img src="../assets/logopng2.png" alt="ExchangeIQ Logo" className="w-auto h-10 drop-shadow" />
+            <img src={LogoPng2} alt="ExchangeIQ Logo" className="w-auto h-10 drop-shadow" />
           </div>
 
           {/* Navigation Links */}
