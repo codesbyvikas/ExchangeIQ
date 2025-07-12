@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import {
   FaVideo,
@@ -10,64 +10,142 @@ import {
   FaTimes,
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { io, Socket } from 'socket.io-client';
+import Peer from 'simple-peer';
 import chatApiHelper from '../utils/api/chatApiHelper';
+import { getMediaStream, createPeer, stopMediaStream } from '../utils/services/webRTC';
 import type { ChatType, MessageType } from '../utils/types/chat';
 
-const ChatPage = () => {
+// Types
+interface MediaPreview {
+  file: File;
+  url: string;
+  type: 'image' | 'video' | 'audio' | 'document';
+}
+
+interface IncomingCall {
+  from: string;
+  signal: Peer.SignalData;
+  type: 'video' | 'audio';
+}
+
+interface CallState {
+  peer: Peer.Instance | null;
+  stream: MediaStream | null;
+  incomingCall: IncomingCall | null;
+  callAccepted: boolean;
+}
+
+// Socket connection
+const socket: Socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000', {
+  withCredentials: true,
+});
+
+const ChatPage: React.FC = () => {
+  // Chat state
   const [chatList, setChatList] = useState<ChatType[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatType | null>(null);
-  const [message, setMessage] = useState('');
-  const [mediaPreview, setMediaPreview] = useState<{
-    file: File;
-    url: string;
-    type: 'image' | 'video' | 'audio' | 'document';
-  } | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showMediaOptions, setShowMediaOptions] = useState(false);
+  const [message, setMessage] = useState<string>('');
+  const [mediaPreview, setMediaPreview] = useState<MediaPreview | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
+  const [showMediaOptions, setShowMediaOptions] = useState<boolean>(false);
 
-  const navigate = useNavigate();
+  // Call state
+  const [callState, setCallState] = useState<CallState>({
+    peer: null,
+    stream: null,
+    incomingCall: null,
+    callAccepted: false,
+  });
+
+  // Refs
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const myVideoRef = useRef<HTMLVideoElement>(null);
+  const userVideoRef = useRef<HTMLVideoElement>(null);
+  const navigate = useNavigate();
 
-  // Scroll to bottom
+  // Load chat list
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedChat?.messages]);
-
-  // Load chats
-  useEffect(() => {
-    const loadChats = async () => {
-      const chats = await chatApiHelper.getChats();
-      setChatList(chats || []);
+    const loadChats = async (): Promise<void> => {
+      try {
+        const chats = await chatApiHelper.getChats();
+        setChatList(chats || []);
+      } catch (error) {
+        console.error('Failed to load chats:', error);
+      }
     };
     loadChats();
   }, []);
 
-  const handleSelectChat = async (chat: ChatType) => {
-    setSelectedChat(null); // reset
-    const updatedChat = await chatApiHelper.getChatById(chat.id);
-    setSelectedChat(updatedChat);
+  // Scroll to latest message
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [selectedChat?.messages]);
+
+  // Socket listeners for call
+  useEffect(() => {
+    const handleIncomingCall = (data: { from: string; signal: Peer.SignalData; type: 'video' | 'audio' }) => {
+      setCallState(prev => ({
+        ...prev,
+        incomingCall: { from: data.from, signal: data.signal, type: data.type }
+      }));
+    };
+
+    const handleCallAccepted = (signal: Peer.SignalData) => {
+      callState.peer?.signal(signal);
+    };
+
+    const handleCallEnded = () => {
+      endCall();
+    };
+
+    socket.on('callIncoming', handleIncomingCall);
+    socket.on('callAccepted', handleCallAccepted);
+    socket.on('callEnded', handleCallEnded);
+
+    return () => {
+      socket.off('callIncoming', handleIncomingCall);
+      socket.off('callAccepted', handleCallAccepted);
+      socket.off('callEnded', handleCallEnded);
+    };
+  }, [callState.peer]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      endCall();
+    };
+  }, []);
+
+  const handleSelectChat = async (chat: ChatType): Promise<void> => {
+    setSelectedChat(null);
+    try {
+      const updatedChat = await chatApiHelper.getChatById(chat.id);
+      setSelectedChat(updatedChat);
+      resetInputState();
+    } catch (error) {
+      console.error('Failed to load chat:', error);
+    }
+  };
+
+  const resetInputState = (): void => {
     setShowEmojiPicker(false);
     setShowMediaOptions(false);
     setMessage('');
     setMediaPreview(null);
   };
 
-  const handleSend = async () => {
-    if (!selectedChat) return;
-    if (!message.trim() && !mediaPreview) return;
+  const handleSend = async (): Promise<void> => {
+    if (!selectedChat || (!message.trim() && !mediaPreview)) return;
 
-    // Don't return early if uploading - let it proceed
     setIsUploading(true);
     try {
       let newMessage: MessageType;
 
       if (mediaPreview) {
-        console.log('Uploading media...', mediaPreview.file.name);
         const upload = await chatApiHelper.uploadMedia(mediaPreview.file);
-        console.log('Upload result:', upload);
-        
         newMessage = await chatApiHelper.sendMessage(selectedChat.id, {
           text: message || undefined,
           mediaUrl: upload.url,
@@ -75,34 +153,29 @@ const ChatPage = () => {
           publicId: upload.publicId,
         });
       } else {
-        newMessage = await chatApiHelper.sendMessage(selectedChat.id, { text: message.trim() });
+        newMessage = await chatApiHelper.sendMessage(selectedChat.id, { 
+          text: message.trim() 
+        });
       }
 
-      console.log('New message:', newMessage);
-
-      // Update selected chat with new message
-      setSelectedChat((prev) =>
+      // Update selected chat messages
+      setSelectedChat(prev => 
         prev ? { ...prev, messages: [...prev.messages, newMessage] } : prev
       );
-      
-      // Update chat list to reflect latest message
-      setChatList((prev) =>
-        prev.map((chat) =>
+
+      // Update chat list
+      setChatList(prev =>
+        prev.map(chat =>
           chat.id === selectedChat.id
             ? { ...chat, messages: [...(chat.messages || []), newMessage] }
             : chat
         )
       );
 
-      // Clear input and preview
-      setMessage('');
-      setMediaPreview(null);
-      setShowEmojiPicker(false);
-      setShowMediaOptions(false);
-    } catch (err) {
-      console.error('Send failed:', err);
-      // Show error to user
-      alert('Failed to send message. Please try again.');
+      resetInputState();
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      alert('Failed to send message.');
     } finally {
       setIsUploading(false);
     }
@@ -110,47 +183,189 @@ const ChatPage = () => {
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: 'image' | 'video' | 'audio' | 'document'
-  ) => {
+    type: MediaPreview['type']
+  ): void => {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
       setMediaPreview({ file, url, type });
-      // Don't overwrite message with filename - let user type their own message
       setShowMediaOptions(false);
     }
   };
 
-  const filteredChats = chatList.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleEmojiClick = (emojiData: { emoji: string }): void => {
+    setMessage(prev => prev + emojiData.emoji);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === 'Enter' && canSend) {
+      handleSend();
+    }
+  };
+
+  // Call functions
+  const callUser = useCallback(async (isVideoCall: boolean = true): Promise<void> => {
+    if (!selectedChat) return;
+
+    try {
+      const constraints = isVideoCall 
+        ? { video: true, audio: true }
+        : { video: false, audio: true };
+      
+      const localStream = await getMediaStream(constraints);
+      
+      setCallState(prev => ({ ...prev, stream: localStream }));
+      
+      if (myVideoRef.current && isVideoCall) {
+        myVideoRef.current.srcObject = localStream;
+      }
+
+      const peer = createPeer(
+        true,
+        localStream,
+        (signalData: Peer.SignalData) => {
+          socket.emit('callUser', {
+            userToCall: selectedChat.id,
+            from: socket.id,
+            signalData,
+            type: isVideoCall ? 'video' : 'audio',
+          });
+        },
+        (remoteStream: MediaStream) => {
+          if (userVideoRef.current) {
+            userVideoRef.current.srcObject = remoteStream;
+          }
+        },
+        (error: Error) => {
+          console.error('Peer error:', error);
+          endCall();
+        }
+      );
+
+      setCallState(prev => ({
+        ...prev,
+        peer,
+        callAccepted: true
+      }));
+    } catch (error) {
+      console.error('Failed to start call:', error);
+      alert('Failed to start call. Please check your camera and microphone permissions.');
+    }
+  }, [selectedChat]);
+
+  const answerCall = useCallback(async (): Promise<void> => {
+    if (!callState.incomingCall) return;
+
+    try {
+      const isVideoCall = callState.incomingCall.type === 'video';
+      const constraints = isVideoCall 
+        ? { video: true, audio: true }
+        : { video: false, audio: true };
+      
+      const localStream = await getMediaStream(constraints);
+      
+      setCallState(prev => ({ ...prev, stream: localStream }));
+      
+      if (myVideoRef.current && isVideoCall) {
+        myVideoRef.current.srcObject = localStream;
+      }
+
+      const peer = createPeer(
+        false,
+        localStream,
+        (signalData: Peer.SignalData) => {
+          socket.emit('answerCall', { 
+            to: callState.incomingCall!.from, 
+            signal: signalData 
+          });
+        },
+        (remoteStream: MediaStream) => {
+          if (userVideoRef.current) {
+            userVideoRef.current.srcObject = remoteStream;
+          }
+        },
+        (error: Error) => {
+          console.error('Peer error:', error);
+          endCall();
+        }
+      );
+
+      peer.signal(callState.incomingCall.signal);
+
+      setCallState(prev => ({
+        ...prev,
+        peer,
+        callAccepted: true,
+        incomingCall: null
+      }));
+    } catch (error) {
+      console.error('Failed to answer call:', error);
+      alert('Failed to answer call. Please check your camera and microphone permissions.');
+    }
+  }, [callState.incomingCall]);
+
+  const endCall = useCallback((): void => {
+    callState.peer?.destroy();
+    stopMediaStream(callState.stream);
+    
+    setCallState({
+      peer: null,
+      stream: null,
+      incomingCall: null,
+      callAccepted: false
+    });
+
+    if (selectedChat) {
+      socket.emit('endCall', { to: selectedChat.id });
+    }
+  }, [callState.peer, callState.stream, selectedChat]);
+
+  const rejectCall = useCallback((): void => {
+    setCallState(prev => ({ ...prev, incomingCall: null }));
+  }, []);
+
+  // Computed values
+  const filteredChats = chatList.filter(chat =>
+    chat.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Check if send button should be enabled
-  const canSend = selectedChat && !isUploading && (message.trim() || mediaPreview);
+  const canSend = Boolean(selectedChat && !isUploading && (message.trim() || mediaPreview));
 
   return (
-    <div className="flex h-dvh w-screen font-sans overflow-hidden" style={{ background: 'linear-gradient(to bottom, #E0F2FF, #FDECEA)' }}>
+    <div 
+      className="flex h-dvh w-screen font-sans overflow-hidden" 
+      style={{ background: 'linear-gradient(to bottom, #E0F2FF, #FDECEA)' }}
+    >
       {/* Sidebar */}
       <div className="w-72 bg-[#3178C6] text-white flex flex-col p-4 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold tracking-wide">ExchangeIQ</h1>
-          <button onClick={() => navigate('/')} className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2">
+          <button 
+            onClick={() => navigate('/')} 
+            className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2 transition-colors"
+          >
             <FaTimes size={14} />
           </button>
         </div>
+        
         <input
           type="text"
           placeholder="Search name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="px-3 py-2 mb-4 rounded bg-white text-black placeholder:text-gray-400"
+          className="px-3 py-2 mb-4 rounded bg-white text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
-        <div className="space-y-4">
+        
+        <div className="space-y-2">
           {filteredChats.map((chat) => (
             <div
               key={chat.id}
               onClick={() => handleSelectChat(chat)}
-              className={`cursor-pointer p-3 rounded-lg transition ${selectedChat?.id === chat.id ? 'bg-[#245fa0]' : 'hover:bg-[#276db9]'}`}
+              className={`cursor-pointer p-3 rounded-lg transition-colors ${
+                selectedChat?.id === chat.id 
+                  ? 'bg-[#245fa0]' 
+                  : 'hover:bg-[#276db9]'
+              }`}
             >
               <div className="font-semibold">{chat.name}</div>
               <div className="text-sm text-blue-200">{chat.skill}</div>
@@ -164,14 +379,77 @@ const ChatPage = () => {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b bg-white">
           <div className="text-left">
-            <div className="text-lg font-semibold">{selectedChat?.name || 'Select a user'}</div>
+            <div className="text-lg font-semibold">
+              {selectedChat?.name || 'Select a user'}
+            </div>
             <div className="text-sm text-gray-500">{selectedChat?.skill}</div>
           </div>
-          <div className="flex gap-4 text-[#3178C6] items-center">
-            <FaPhone className="cursor-pointer" size={20} />
-            <FaVideo className="cursor-pointer" size={20} />
-          </div>
+          
+          {selectedChat && (
+            <div className="flex gap-4 text-[#3178C6] items-center">
+              <button
+                onClick={() => callUser(false)}
+                className="hover:text-blue-700 transition-colors"
+                title="Voice call"
+              >
+                <FaPhone size={20} />
+              </button>
+              <button
+                onClick={() => callUser(true)}
+                className="hover:text-blue-700 transition-colors"
+                title="Video call"
+              >
+                <FaVideo size={20} />
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Video Area */}
+        {callState.callAccepted && (
+          <div className="flex justify-center items-center gap-4 bg-black py-4">
+            <video 
+              ref={myVideoRef} 
+              autoPlay 
+              muted 
+              playsInline 
+              className="w-40 h-32 rounded border-2 border-gray-600" 
+            />
+            <video 
+              ref={userVideoRef} 
+              autoPlay 
+              playsInline 
+              className="w-40 h-32 rounded border-2 border-gray-600" 
+            />
+            <button 
+              onClick={endCall} 
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors"
+            >
+              End Call
+            </button>
+          </div>
+        )}
+
+        {/* Incoming Call */}
+        {callState.incomingCall && !callState.callAccepted && (
+          <div className="p-4 text-center bg-yellow-100 border-b">
+            <p className="mb-3">📞 Incoming {callState.incomingCall.type} call...</p>
+            <div className="flex justify-center gap-3">
+              <button 
+                onClick={answerCall} 
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition-colors"
+              >
+                Accept
+              </button>
+              <button 
+                onClick={rejectCall} 
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Messages */}
         <div className="flex-1 p-6 overflow-y-auto space-y-3">
@@ -184,52 +462,8 @@ const ChatPage = () => {
                   : 'bg-white self-start mr-auto'
               } shadow-[0_4px_8px_rgba(0,0,0,0.1)]`}
             >
-              {msg.mediaUrl && (
-                <div className="mb-2">
-                  {msg.mediaType === 'image' && (
-                    <img 
-                      src={msg.mediaUrl} 
-                      alt="Shared image"
-                      className="rounded max-w-xs max-h-60 object-cover"
-                      onError={(e) => {
-                        console.error('Image failed to load:', msg.mediaUrl);
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  )}
-                  {msg.mediaType === 'video' && (
-                    <video 
-                      src={msg.mediaUrl} 
-                      controls 
-                      className="max-w-xs rounded"
-                      onError={(e) => {
-                        console.error('Video failed to load:', msg.mediaUrl, e);
-                      }}
-                    />
-                  )}
-                  {msg.mediaType === 'audio' && (
-                    <audio 
-                      src={msg.mediaUrl} 
-                      controls 
-                      onError={(e) => {
-                        console.error('Audio failed to load:', msg.mediaUrl, e);
-                      }}
-                    />
-                  )}
-                  {msg.mediaType === 'document' && (
-                    <a 
-                      href={msg.mediaUrl} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="underline text-blue-600 hover:text-blue-800"
-                    >
-                      📄 {msg.text || 'View Document'}
-                    </a>
-                  )}
-                </div>
-              )}
-              {msg.text && <div>{msg.text}</div>}
-              <div className="text-xs text-gray-400 mt-1">{msg.timestamp}</div>
+              {msg.text && <div className="mb-1">{msg.text}</div>}
+              <div className="text-xs text-gray-400">{msg.timestamp}</div>
             </div>
           ))}
           <div ref={chatEndRef} />
@@ -237,105 +471,100 @@ const ChatPage = () => {
 
         {/* Media Preview */}
         {mediaPreview && (
-          <div className="px-6 py-2 bg-white flex items-center justify-between text-sm border-t">
-            <div className="flex items-center gap-4 max-w-[80%]">
-              {mediaPreview.type === 'image' && (
-                <img src={mediaPreview.url} alt="preview" className="w-16 h-16 object-cover rounded" />
-              )}
-              {mediaPreview.type === 'video' && (
-                <video src={mediaPreview.url} className="w-24 h-16 object-cover rounded" />
-              )}
-              {mediaPreview.type === 'audio' && (
-                <div className="flex items-center gap-2">
-                  🎤 <span className="text-gray-600">{mediaPreview.file.name}</span>
-                </div>
-              )}
-              {mediaPreview.type === 'document' && (
-                <div className="flex items-center gap-2">
-                  📄 <span className="text-blue-600">{mediaPreview.file.name}</span>
-                </div>
-              )}
+          <div className="px-4 py-2 bg-gray-50 border-t">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                {mediaPreview.type}: {mediaPreview.file.name}
+              </span>
+              <button
+                onClick={() => setMediaPreview(null)}
+                className="text-red-500 hover:text-red-700"
+              >
+                <FaTrash size={14} />
+              </button>
             </div>
-            <FaTrash 
-              className="text-red-500 cursor-pointer hover:text-red-700" 
-              onClick={() => { 
-                setMediaPreview(null); 
-                setMessage(''); 
-              }} 
-            />
           </div>
         )}
 
         {/* Input */}
         <div className="relative flex items-center px-4 py-3 bg-white border-t gap-3">
-          {showMediaOptions && (
-            <div className="absolute bottom-16 left-4 bg-white shadow-lg rounded-lg p-2 space-y-2 z-50 text-sm border">
-              {['image', 'video', 'audio', 'document'].map((type) => (
-                <label key={type} className="cursor-pointer block hover:text-[#3178C6] p-2 rounded hover:bg-gray-50">
-                  {type === 'image'
-                    ? '📷 Image'
-                    : type === 'video'
-                    ? '🎥 Video'
-                    : type === 'audio'
-                    ? '🎤 Audio'
-                    : '📄 Document'}
-                  <input
-                    type="file"
-                    hidden
-                    accept={
-                      type === 'image'
-                        ? 'image/*'
-                        : type === 'video'
-                        ? 'video/*'
-                        : type === 'audio'
-                        ? 'audio/*'
-                        : '.pdf,.doc,.docx,.txt'
-                    }
-                    onChange={(e) => handleFileChange(e, type as any)}
-                  />
-                </label>
-              ))}
-            </div>
-          )}
-
+          {/* Emoji Picker */}
           {showEmojiPicker && (
             <div className="absolute bottom-16 right-4 z-50">
-              <EmojiPicker onEmojiClick={(e) => setMessage((prev) => prev + e.emoji)} />
+              <EmojiPicker onEmojiClick={handleEmojiClick} />
+            </div>
+          )}
+
+          {/* Media Options */}
+          {showMediaOptions && (
+            <div className="absolute bottom-16 left-4 bg-white border rounded-lg shadow-lg p-2 z-50">
+              <div className="flex flex-col gap-2">
+                <label className="cursor-pointer hover:bg-gray-100 p-2 rounded">
+                  <span className="text-sm">📷 Photo</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, 'image')}
+                    className="hidden"
+                  />
+                </label>
+                <label className="cursor-pointer hover:bg-gray-100 p-2 rounded">
+                  <span className="text-sm">🎥 Video</span>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => handleFileChange(e, 'video')}
+                    className="hidden"
+                  />
+                </label>
+                <label className="cursor-pointer hover:bg-gray-100 p-2 rounded">
+                  <span className="text-sm">📄 Document</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    onChange={(e) => handleFileChange(e, 'document')}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
           )}
 
           <button 
-            onClick={() => setShowMediaOptions((prev) => !prev)} 
-            className="text-gray-600 hover:text-gray-800 text-lg"
+            onClick={() => setShowMediaOptions(prev => !prev)} 
+            className="text-gray-600 hover:text-gray-800 transition-colors"
           >
-            <FaPlus />
+            <FaPlus size={18} />
           </button>
+          
           <button 
-            onClick={() => setShowEmojiPicker((prev) => !prev)} 
-            className="text-yellow-500 hover:text-yellow-600 text-lg"
+            onClick={() => setShowEmojiPicker(prev => !prev)} 
+            className="text-yellow-500 hover:text-yellow-600 transition-colors"
           >
-            <FaSmile />
+            <FaSmile size={18} />
           </button>
-
+          
           <input
             type="text"
             placeholder={isUploading ? "Uploading..." : "Type a message"}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && canSend && handleSend()}
-            className="flex-1 border-none outline-none px-4 py-2 rounded-full bg-gray-100 disabled:opacity-50"
+            onKeyDown={handleKeyPress}
+            className="flex-1 border-none outline-none px-4 py-2 rounded-full bg-gray-100 disabled:opacity-50 focus:bg-white focus:ring-2 focus:ring-blue-300"
             disabled={isUploading}
           />
-
-          <FaPaperPlane
-            size={20}
-            className={`cursor-pointer transition-colors ${
+          
+          <button
+            onClick={canSend ? handleSend : undefined}
+            disabled={!canSend}
+            className={`transition-colors ${
               canSend 
-                ? 'text-[#3178C6] hover:text-[#245fa0]' 
+                ? 'text-[#3178C6] hover:text-blue-700 cursor-pointer' 
                 : 'text-gray-400 cursor-not-allowed'
             }`}
-            onClick={canSend ? handleSend : undefined}
-          />
+          >
+            <FaPaperPlane size={18} />
+          </button>
         </div>
       </div>
     </div>
