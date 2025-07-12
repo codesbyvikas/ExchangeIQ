@@ -8,7 +8,6 @@ import {
   FaPlus,
   FaTrash,
   FaTimes,
-  FaDownload,
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
@@ -52,7 +51,6 @@ const ChatPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const [showMediaOptions, setShowMediaOptions] = useState<boolean>(false);
-  const [userId, setUserId] = useState<string>('');
 
   // Call state
   const [callState, setCallState] = useState<CallState>({
@@ -67,25 +65,6 @@ const ChatPage: React.FC = () => {
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const userVideoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
-
-  // Initialize socket connection and get user ID
-  useEffect(() => {
-    // Get user ID from localStorage or API
-    const currentUserId = localStorage.getItem('userId') || socket.id;
-    setUserId(currentUserId);
-
-    // Join user to their room
-    socket.emit('join', { userId: currentUserId });
-
-    // Listen for socket connection
-    socket.on('connect', () => {
-      console.log('Connected to socket server');
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
 
   // Load chat list
   useEffect(() => {
@@ -105,9 +84,9 @@ const ChatPage: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedChat?.messages]);
 
-  // Socket listeners for call and messages
+  // Socket listeners for call
   useEffect(() => {
-    const handleIncomingCall = (data: { from: string; signal: Peer.SignalData; type: 'video' | 'audio'; callerName?: string }) => {
+    const handleIncomingCall = (data: { from: string; signal: Peer.SignalData; type: 'video' | 'audio' }) => {
       setCallState(prev => ({
         ...prev,
         incomingCall: { from: data.from, signal: data.signal, type: data.type }
@@ -115,45 +94,23 @@ const ChatPage: React.FC = () => {
     };
 
     const handleCallAccepted = (signal: Peer.SignalData) => {
-      if (callState.peer) {
-        callState.peer.signal(signal);
-      }
+      callState.peer?.signal(signal);
     };
 
     const handleCallEnded = () => {
       endCall();
     };
 
-    const handleNewMessage = (newMessage: MessageType) => {
-      // Update selected chat if it's the same chat
-      if (selectedChat && selectedChat.id === newMessage.chatId) {
-        setSelectedChat(prev => 
-          prev ? { ...prev, messages: [...prev.messages, newMessage] } : prev
-        );
-      }
-
-      // Update chat list
-      setChatList(prev =>
-        prev.map(chat =>
-          chat.id === newMessage.chatId
-            ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-            : chat
-        )
-      );
-    };
-
     socket.on('callIncoming', handleIncomingCall);
     socket.on('callAccepted', handleCallAccepted);
     socket.on('callEnded', handleCallEnded);
-    socket.on('newMessage', handleNewMessage);
 
     return () => {
       socket.off('callIncoming', handleIncomingCall);
       socket.off('callAccepted', handleCallAccepted);
       socket.off('callEnded', handleCallEnded);
-      socket.off('newMessage', handleNewMessage);
     };
-  }, [callState.peer, selectedChat]);
+  }, [callState.peer]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -215,13 +172,6 @@ const ChatPage: React.FC = () => {
         )
       );
 
-      // Emit message to socket for real-time delivery
-      socket.emit('sendMessage', {
-        chatId: selectedChat.id,
-        message: newMessage,
-        recipientId: selectedChat.id // or however you identify the recipient
-      });
-
       resetInputState();
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -276,7 +226,7 @@ const ChatPage: React.FC = () => {
         (signalData: Peer.SignalData) => {
           socket.emit('callUser', {
             userToCall: selectedChat.id,
-            from: userId,
+            from: socket.id,
             signalData,
             type: isVideoCall ? 'video' : 'audio',
           });
@@ -301,7 +251,7 @@ const ChatPage: React.FC = () => {
       console.error('Failed to start call:', error);
       alert('Failed to start call. Please check your camera and microphone permissions.');
     }
-  }, [selectedChat, userId]);
+  }, [selectedChat]);
 
   const answerCall = useCallback(async (): Promise<void> => {
     if (!callState.incomingCall) return;
@@ -355,12 +305,8 @@ const ChatPage: React.FC = () => {
   }, [callState.incomingCall]);
 
   const endCall = useCallback((): void => {
-    if (callState.peer) {
-      callState.peer.destroy();
-    }
-    if (callState.stream) {
-      stopMediaStream(callState.stream);
-    }
+    callState.peer?.destroy();
+    stopMediaStream(callState.stream);
     
     setCallState({
       peer: null,
@@ -375,74 +321,8 @@ const ChatPage: React.FC = () => {
   }, [callState.peer, callState.stream, selectedChat]);
 
   const rejectCall = useCallback((): void => {
-    if (callState.incomingCall) {
-      socket.emit('rejectCall', { to: callState.incomingCall.from });
-    }
     setCallState(prev => ({ ...prev, incomingCall: null }));
-  }, [callState.incomingCall]);
-
-  // Media rendering component
-  const renderMediaContent = (msg: MessageType) => {
-    if (!msg.mediaUrl) return null;
-
-    const mediaType = msg.mediaType;
-    
-    switch (mediaType) {
-      case 'image':
-        return (
-          <div className="mb-2">
-            <img 
-              src={msg.mediaUrl} 
-              alt="Shared image" 
-              className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => window.open(msg.mediaUrl, '_blank')}
-            />
-          </div>
-        );
-      
-      case 'video':
-        return (
-          <div className="mb-2">
-            <video 
-              src={msg.mediaUrl} 
-              controls 
-              className="max-w-full h-auto rounded-lg"
-              preload="metadata"
-            />
-          </div>
-        );
-      
-      case 'audio':
-        return (
-          <div className="mb-2">
-            <audio 
-              src={msg.mediaUrl} 
-              controls 
-              className="w-full"
-              preload="metadata"
-            />
-          </div>
-        );
-      
-      case 'document':
-        return (
-          <div className="mb-2 p-3 bg-gray-100 rounded-lg flex items-center gap-2">
-            <FaDownload className="text-gray-600" />
-            <a 
-              href={msg.mediaUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline"
-            >
-              Download Document
-            </a>
-          </div>
-        );
-      
-      default:
-        return null;
-    }
-  };
+  }, []);
 
   // Computed values
   const filteredChats = chatList.filter(chat =>
@@ -582,13 +462,7 @@ const ChatPage: React.FC = () => {
                   : 'bg-white self-start mr-auto'
               } shadow-[0_4px_8px_rgba(0,0,0,0.1)]`}
             >
-              {/* Render media content */}
-              {renderMediaContent(msg)}
-              
-              {/* Render text content */}
               {msg.text && <div className="mb-1">{msg.text}</div>}
-              
-              {/* Timestamp */}
               <div className="text-xs text-gray-400">{msg.timestamp}</div>
             </div>
           ))}
@@ -599,18 +473,9 @@ const ChatPage: React.FC = () => {
         {mediaPreview && (
           <div className="px-4 py-2 bg-gray-50 border-t">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">
-                  {mediaPreview.type}: {mediaPreview.file.name}
-                </span>
-                {mediaPreview.type === 'image' && (
-                  <img 
-                    src={mediaPreview.url} 
-                    alt="Preview" 
-                    className="w-10 h-10 object-cover rounded"
-                  />
-                )}
-              </div>
+              <span className="text-sm text-gray-600">
+                {mediaPreview.type}: {mediaPreview.file.name}
+              </span>
               <button
                 onClick={() => setMediaPreview(null)}
                 className="text-red-500 hover:text-red-700"
@@ -649,15 +514,6 @@ const ChatPage: React.FC = () => {
                     type="file"
                     accept="video/*"
                     onChange={(e) => handleFileChange(e, 'video')}
-                    className="hidden"
-                  />
-                </label>
-                <label className="cursor-pointer hover:bg-gray-100 p-2 rounded">
-                  <span className="text-sm">🎵 Audio</span>
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    onChange={(e) => handleFileChange(e, 'audio')}
                     className="hidden"
                   />
                 </label>
