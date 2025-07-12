@@ -120,11 +120,11 @@ router.post('/:chatId/message', authCheck, async (req, res) => {
     const userId = req.user._id;
 
     // Enhanced debug logging
-    console.log('=== MESSAGE SEND DEBUG ===');
-    console.log('Chat ID:', chatId);
-    console.log('User ID:', userId);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    console.log('Request headers:', req.headers['content-type']);
+    // console.log('=== MESSAGE SEND DEBUG ===');
+    // console.log('Chat ID:', chatId);
+    // console.log('User ID:', userId);
+    // console.log('Request body:', JSON.stringify(req.body, null, 2));
+    // console.log('Request headers:', req.headers['content-type']);
 
     // Validate input
     const validationErrors = validateMessage(text, mediaUrl, mediaType);

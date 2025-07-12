@@ -1,4 +1,5 @@
 // index.js - Main server file for Render deployment
+
 const express = require("express");
 const session = require("express-session");
 const passport = require("passport");
@@ -15,27 +16,23 @@ require("./config/google");
 const app = express();
 const server = http.createServer(app);
 
+// Trust proxy for secure cookies on Render
+app.set("trust proxy", 1);
 app.use(express.json());
 
-// Trust proxy for Render (needed for secure cookies to be set)
-app.set("trust proxy", 1);
-
-// CORS configuration for production
+// CORS setup
 const allowedOrigins = [
-  "http://localhost:5173", 
-  process.env.FRONTEND_BASE_URL, 
+  "http://localhost:5173",
+  process.env.FRONTEND_BASE_URL,
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, postman)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        console.log("Blocked by CORS:", origin);
+        console.warn("Blocked by CORS:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
@@ -44,19 +41,19 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-// MongoDB Connection
+
+// MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("✅ Database connected");
-    console.log("📦 Using database:", mongoose.connection.name);
+    console.log("✅ Database connected:", mongoose.connection.name);
   })
   .catch((err) => {
-    console.error("❌ Database connection failed:", err);
+    console.error("❌ DB connection error:", err.message);
     process.exit(1);
   });
 
-// Session Middleware with production settings
+// Session setup
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "defaultsecret",
   resave: false,
@@ -64,17 +61,16 @@ const sessionMiddleware = session({
   cookie: {
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24, 
-    sameSite: "None",  
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    sameSite: "lax",
   },
 });
 
-// Passport Middleware
 app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Health check endpoint for Render
+// Health check
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
@@ -88,50 +84,48 @@ app.use("/invitation", require("./routes/invitation"));
 app.use("/chat", require("./routes/chat"));
 app.use("/media", require("./routes/chatMedia"));
 
-// Socket.IO setup with production configuration
+// Socket.IO
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST"],
   },
-  // Additional production settings
   pingTimeout: 60000,
   pingInterval: 25000,
   transports: ["websocket", "polling"],
 });
 
 io.use(sharedSession(sessionMiddleware, { autoSave: true }));
-
-// Load socket logic
 require("./sockets/chatSocket")(io);
 
-// Error handling middleware
+// 404 handler
+app.use("*", (req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
+
+// Error handler
 app.use((err, req, res, next) => {
   console.error("Error:", err.stack);
   res.status(500).json({ error: "Something went wrong!" });
 });
 
-// Handle 404 routes
-app.use("*", (req, res) => {
-  res.status(404).json({ error: "Route not found" });
-});
-
 // Graceful shutdown
 process.on("SIGTERM", () => {
-  console.log("SIGTERM received, shutting down gracefully");
+  console.log("SIGTERM received. Shutting down...");
   server.close(() => {
-    console.log("Process terminated");
-    mongoose.connection.close();
+    mongoose.connection.close(false, () => {
+      console.log("MongoDB connection closed");
+      process.exit(0);
+    });
   });
 });
 
-// Start Server with Socket.IO bound
+// Start server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on PORT: ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// Export for testing purposes
+// Export
 module.exports = { app, server, io };
