@@ -122,7 +122,7 @@ const Home = () => {
       const otherUsersTeachPosts = teachPostsRes.filter(post => post.fromUser._id !== myId);
 
       const filteredLearnPosts = otherUsersLearnPosts.filter(post =>
-        myTeachSkills.includes(post.learnSkill._id) &&
+        myLearnSkills.includes(post.learnSkill._id) &&
         !sent.some(inv =>
           inv.toUser._id === post.fromUser._id &&
           inv.reqType === 'learn' &&
@@ -131,7 +131,7 @@ const Home = () => {
       );
 
       const filteredTeachPosts = otherUsersTeachPosts.filter(post =>
-        myLearnSkills.includes(post.learnSkill._id) &&
+        myTeachSkills.includes(post.learnSkill._id) &&
         !sent.some(inv =>
           inv.toUser._id === post.fromUser._id &&
           inv.reqType === 'teach' &&
