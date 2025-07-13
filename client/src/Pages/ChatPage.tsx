@@ -462,7 +462,44 @@ const ChatPage: React.FC = () => {
                   : 'bg-white self-start mr-auto'
               } shadow-[0_4px_8px_rgba(0,0,0,0.1)]`}
             >
-              {msg.text && <div className="mb-1">{msg.text}</div>}
+             {msg.text && <div className="mb-1">{msg.text}</div>}
+
+              {msg.mediaUrl && (
+                <div className="mt-2">
+                  {msg.mediaType === 'image' && (
+                    <img
+                      src={msg.mediaUrl}
+                      alt="Sent media"
+                      className="max-w-xs max-h-64 rounded shadow"
+                    />
+                  )}
+                  {msg.mediaType === 'video' && (
+                    <video
+                      src={msg.mediaUrl}
+                      controls
+                      className="max-w-xs rounded shadow"
+                    />
+                  )}
+                  {msg.mediaType === 'audio' && (
+                    <audio
+                      controls
+                      src={msg.mediaUrl}
+                      className="w-full"
+                    />
+                  )}
+                  {msg.mediaType === 'document' && (
+                    <a
+                      href={msg.mediaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      📄 View Document
+                    </a>
+                  )}
+                </div>
+              )}
+
               <div className="text-xs text-gray-400">{msg.timestamp}</div>
             </div>
           ))}
