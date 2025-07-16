@@ -2,7 +2,7 @@
 
 **ExchangeIQ** is a modern skill exchange platform that empowers individuals to **teach what they know** and **learn what they love**. Whether it’s coding, photography, music, or any life skill — ExchangeIQ connects you to people who complement your learning goals.
 
-![ExchangeIQ Banner](https://your-placeholder-image-url.com/banner.png)
+![ExchangeIQ Banner](https://github.com/codesbyvikas/ExchangeIQ/blob/main/client/src/assets/logopng2.png)
 
 ---
 
@@ -14,7 +14,6 @@
 - 💬 Real-time chat with:
   - Emoji picker
   - Media sharing
-  - Scroll-to-bottom animation
   - Message timestamps
 - 📞 Audio & video calls (WebRTC + Socket.IO)
 - 🌐 Responsive UI — works great on mobile & desktop
@@ -74,6 +73,32 @@
 ### Backend Setup
 
 ```bash
-cd backend
+cd server
 npm install
 npm run dev
+
+### Frontend Setup
+
+```bash
+cd client
+npm install
+npm run dev
+
+### env server
+
+```bash
+MONGO_URI=your_mongo_uri
+JWT_SECRET=your_jwt_secret
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+GOOGLE_CLIENT_ID=your_google_id
+GOOGLE_CLIENT_SECRET=your_google_secret
+FRONTEND_BASE_URL=http://localhost:5173
+
+### env client
+
+```bash
+VITE_BASE_API = your_backend_api
+
+
