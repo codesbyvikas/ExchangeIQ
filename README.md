@@ -23,7 +23,7 @@
 
 ## 🚀 Live Demo
 
-👉 [Visit ExchangeIQ](https://exchangeiq.vercel.app)
+👉 [Visit ExchangeIQ](https://exchange-iq.vercel.app/)
 
 ---
 
@@ -34,7 +34,6 @@
 - Tailwind CSS
 - React Router
 - Lucide Icons
-- Emoji Picker
 - Socket.IO Client
 - Simple-Peer (WebRTC)
 
@@ -47,6 +46,7 @@
 - Multer (file handling)
 
 ### Dev & Tools
+- VS Code
 - Vite
 - Postman / Thunder Client
 - ESLint + Prettier
@@ -58,7 +58,7 @@
 
 | Home | Skill Matching | Chat |
 |------|----------------|------|
-| ![Home](https://your-image-url.com/home.png) | ![Matching](https://your-image-url.com/match.png) | ![Chat](https://your-image-url.com/chat.png) |
+| ![Home](https://github.com/codesbyvikas/ExchangeIQ/blob/main/client/src/assets/homepage.png) | ![Matching](https://github.com/codesbyvikas/ExchangeIQ/blob/main/client/src/assets/skillinvite.png) | ![Chat](https://github.com/codesbyvikas/ExchangeIQ/blob/main/client/src/assets/chatpage.png) |
 
 ---
 
