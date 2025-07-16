@@ -1,14 +1,13 @@
-// index.js - Main server file for Render deployment
+// index.js - Main server file for Render deployment using cookie-session
 
 const express = require("express");
-const session = require("express-session");
+const cookieSession = require("cookie-session");
 const passport = require("passport");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-const sharedSession = require("express-socket.io-session");
 
 dotenv.config();
 require("./config/google");
@@ -53,22 +52,28 @@ mongoose
     process.exit(1);
   });
 
-// Session setup
-const sessionMiddleware = session({
-  secret: process.env.SESSION_SECRET || "defaultsecret",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
+// Use cookie-session
+app.use(
+  cookieSession({
+    name: "session",
+    keys: [process.env.SESSION_SECRET || "fallbacksecret"],
+    maxAge: 24 * 60 * 60 * 1000, 
     secure: true,
+    sameSite: "none",
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
-    sameSite: "None",
-  },
-});
+  })
+);
 
-app.use(sessionMiddleware);
+// Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Debug session
+app.use((req, res, next) => {
+  console.log("Session:", req.session);
+  console.log("User:", req.user);
+  next();
+});
 
 // Health check
 app.get("/health", (req, res) => {
@@ -96,7 +101,7 @@ const io = new Server(server, {
   transports: ["websocket", "polling"],
 });
 
-io.use(sharedSession(sessionMiddleware, { autoSave: true }));
+// No shared-session needed since we're not using express-session
 require("./sockets/chatSocket")(io);
 
 // 404 handler
@@ -127,5 +132,4 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// Export
 module.exports = { app, server, io };
