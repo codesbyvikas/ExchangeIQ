@@ -1,16 +1,17 @@
 import axios from "axios";
 import type { ChatType, MessageType, UploadMediaResponse } from "../types/chat";
+import { getAuthHeader } from "./authHeader";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 const chatApiHelper = {
   getChats: async (): Promise<ChatType[]> => {
-    const res = await axios.get(`${API_URL}/chat`, { withCredentials: true });
+    const res = await axios.get(`${API_URL}/chat`, getAuthHeader());
     return Array.isArray(res.data) ? res.data : res.data?.chats || [];
   },
 
   getChatById: async (chatId: string): Promise<ChatType> => {
-    const res = await axios.get(`${API_URL}/chat/${chatId}`, { withCredentials: true });
+    const res = await axios.get(`${API_URL}/chat/${chatId}`, getAuthHeader());
     return res.data;
   },
 
@@ -23,9 +24,7 @@ const chatApiHelper = {
       publicId?: string;
     }
   ): Promise<MessageType> => {
-    const res = await axios.post(`${API_URL}/chat/${chatId}/message`, content, {
-      withCredentials: true,
-    });
+    const res = await axios.post(`${API_URL}/chat/${chatId}/message`, content, getAuthHeader());
     return res.data;
   },
 
@@ -35,8 +34,11 @@ const chatApiHelper = {
     if (chatId) formData.append("chatId", chatId);
 
     const res = await axios.post(`${API_URL}/media/upload`, formData, {
-      withCredentials: true,
-      headers: { "Content-Type": "multipart/form-data" },
+      ...getAuthHeader(),
+      headers: {
+        ...getAuthHeader().headers,
+        "Content-Type": "multipart/form-data",
+      },
     });
 
     return res.data;

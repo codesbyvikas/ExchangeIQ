@@ -1,8 +1,8 @@
-import { Link } from 'react-router-dom';
-import Avatar from '../assets/Avatar.png';
 import { FaExchangeAlt, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
-import type { InvitationType } from '../utils/types/invitation';
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import Avatar from '../assets/Avatar.png';
+import type { InvitationType } from '../utils/types/invitation';
 
 interface Props {
   invitation: InvitationType;
@@ -11,6 +11,7 @@ interface Props {
 
 const ExchangeInvitationCard = ({ invitation, onStatusChange }: Props) => {
   const [isProcessing, setIsProcessing] = useState(false);
+
   const date = new Date(invitation.createdAt).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -33,7 +34,9 @@ const ExchangeInvitationCard = ({ invitation, onStatusChange }: Props) => {
         <Link to={`/profile/${fromUser._id}`}>
           <img className="w-16 h-16 rounded-full" src={fromUser.photo || Avatar} alt="Avatar" />
         </Link>
-        <h4 className="font-bold text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[80px]">{fromUser.name}</h4>
+        <h4 className="font-bold text-sm text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80px]">
+          {fromUser.name}
+        </h4>
         <h4 className="font-semibold text-xs">Student</h4>
       </div>
 
@@ -59,13 +62,13 @@ const ExchangeInvitationCard = ({ invitation, onStatusChange }: Props) => {
 
       <div className="flex flex-col gap-2 w-[110px]">
         <button onClick={() => handleClick('accepted')} disabled={isProcessing}>
-          <div className="w-full inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-full shadow-sm transition">
+          <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-full shadow-sm transition">
             <FaCheckCircle className="text-white text-base" />
             <span>Accept</span>
           </div>
         </button>
         <button onClick={() => handleClick('declined')} disabled={isProcessing}>
-          <div className="w-full inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-full shadow-sm transition">
+          <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-full shadow-sm transition">
             <FaTimesCircle className="text-white text-base" />
             <span>Decline</span>
           </div>

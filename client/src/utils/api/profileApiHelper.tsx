@@ -1,10 +1,10 @@
 import axios from "axios";
 import type { UserType } from "../types/user";
 import type { ChatUserType } from "../types/chatUser";
+import { getAuthHeader } from "./authHeader";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-// For profile updates
 interface ProfileUpdatePayload {
   name?: string;
   profession?: string;
@@ -12,15 +12,14 @@ interface ProfileUpdatePayload {
   teachSkills?: string[];
 }
 
-// Shape of updated user after edit
 interface UpdatedUser {
   _id: string;
   name: string;
   email: string;
   photo?: string;
   profession: string;
-  followers: string[],
-  following: string[],
+  followers: string[];
+  following: string[];
   skillsToTeach: string[];
   skillsToLearn: string[];
   createdAt: string;
@@ -32,76 +31,34 @@ interface ProfileUpdateResponse {
 }
 
 const profileApiHelper = {
-  // Update profile (name, profession, skills)
   profileUpdate: async (payload: ProfileUpdatePayload): Promise<ProfileUpdateResponse> => {
-    try {
-      const res = await axios.post<ProfileUpdateResponse>(
-        `${API_URL}/profile/edit`,
-        payload,
-        { withCredentials: true }
-      );
-      return res.data;
-    } catch (error: any) {
-      console.error("Error updating profile:", error.response?.data || error.message);
-      throw error.response?.data || { error: "Something went wrong" };
-    }
+    const res = await axios.post(`${API_URL}/profile/edit`, payload, getAuthHeader());
+    return res.data;
   },
 
-  // Get logged-in user's own profile
   getSelfProfile: async (): Promise<UserType> => {
-    try {
-      const res = await axios.get<UpdatedUser>(`${API_URL}/profile/me`, {
-        withCredentials: true,
-      });
-      return res.data;
-    } catch (error: any) {
-      console.error("Error fetching profile:", error.response?.data || error.message);
-      throw error.response?.data || { error: "Something went wrong" };
-    }
+    const res = await axios.get(`${API_URL}/profile/me`, getAuthHeader());
+    return res.data;
   },
 
-  // Get any user's profile by ID
   getUserById: async (id: string): Promise<UserType> => {
-    try {
-      const res = await axios.get(`${API_URL}/profile/${id}`, {
-        withCredentials: true,
-      });
-      return res.data as UserType;
-    } catch (err) {
-      console.error(`Error fetching user with ID ${id}:`, err);
-      throw err;
-    }
+    const res = await axios.get(`${API_URL}/profile/${id}`, getAuthHeader());
+    return res.data;
   },
 
   followUser: async (id: string) => {
-    try{
-      const res = await axios.post(`${API_URL}/profile/${id}/follow`, {}, { withCredentials: true });
-      return res.data;
-    } catch (error: any) {
-      throw error.response?.data || { error: "Failed to follow user" };
-    }
+    const res = await axios.post(`${API_URL}/profile/${id}/follow`, {}, getAuthHeader());
+    return res.data;
   },
 
   unfollowUser: async (id: string) => {
-    try{
-      const res = await axios.post(`${API_URL}/profile/${id}/unfollow`, {}, { withCredentials: true });
-      return res.data;
-    } catch (error: any) {
-      throw error.response?.data || { error: "Failed to unfollow user" };
-    }
+    const res = await axios.post(`${API_URL}/profile/${id}/unfollow`, {}, getAuthHeader());
+    return res.data;
   },
 
-  // Get chat-eligible users (based on accepted invitations)
   getChatUsers: async (): Promise<ChatUserType[]> => {
-    try {
-      const res = await axios.get(`${API_URL}/profile/chat-users`, {
-        withCredentials: true,
-      });
-      return res.data;
-    } catch (e) {
-      console.error("Error fetching chat users:", e);
-      return [];
-    }
+    const res = await axios.get(`${API_URL}/profile/chat-users`, getAuthHeader());
+    return res.data;
   },
 };
 

@@ -11,13 +11,17 @@ interface Props {
 
 const InvitationCard = ({ invitation, onStatusChange }: Props) => {
   const [isProcessing, setIsProcessing] = useState(false);
+
   const date = new Date(invitation.createdAt).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
 
-  const skill = invitation.reqType === 'learn' ? invitation.skillRequested : invitation.skillOffered;
+  const skill =
+    invitation.reqType === 'learn'
+      ? invitation.skillRequested
+      : invitation.skillOffered;
 
   const handleClick = async (status: 'accepted' | 'declined') => {
     setIsProcessing(true);
@@ -52,19 +56,18 @@ const InvitationCard = ({ invitation, onStatusChange }: Props) => {
       {/* Buttons */}
       <div className="flex flex-col gap-2 w-[110px]">
         <button onClick={() => handleClick('accepted')} disabled={isProcessing}>
-          <div className="w-full inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-full shadow-sm transition">
+          <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-full shadow-sm transition">
             <FaCheckCircle className="text-white text-base" />
             <span>Accept</span>
           </div>
         </button>
         <button onClick={() => handleClick('declined')} disabled={isProcessing}>
-          <div className="w-full inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-full shadow-sm transition">
+          <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-full shadow-sm transition">
             <FaTimesCircle className="text-white text-base" />
             <span>Decline</span>
           </div>
         </button>
       </div>
-
     </div>
   );
 };

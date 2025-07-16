@@ -44,7 +44,7 @@ const Navbar = () => {
 
   return (
     <div className="w-full bg-[#E0F2FF] relative">
-      {/* Top section */}
+      {/* Top Section */}
       <div className="w-full pr-10 max-sm:pr-0 flex justify-between items-center">
         <div className="pl-4 max-sm:pl-2 flex flex-col">
           <img className="w-60 h-20 object-cover" src={Logo} alt="ExchangeIQ Logo" />
@@ -56,16 +56,16 @@ const Navbar = () => {
           </h2>
         </div>
 
+        {/* User Profile */}
         {user && (
           <div className="hidden sm:flex text-right flex-col items-end">
-            <button onClick={()=>navigate("/profile")}>
+            <button onClick={() => navigate("/profile")}>
               <img
                 className="w-14 h-14 rounded-full object-cover cursor-pointer"
                 src={user.photo || Avatar}
                 alt={user.name || 'Avatar'}
               />
             </button>
-            
             <button
               onClick={handleLogout}
               className="mt-2 cursor-pointer px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition"
@@ -75,7 +75,7 @@ const Navbar = () => {
           </div>
         )}
 
-        {/* Mobile menu icon */}
+        {/* Mobile Menu Icon */}
         <div className="sm:hidden pr-4">
           <button onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
@@ -83,6 +83,7 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Desktop Menu */}
       <div className="w-full hidden sm:flex justify-center absolute top-5">
         <ul className="overflow-hidden font-semibold bg-[#ffffffb0] rounded-lg flex">
           <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]" to="/">
@@ -100,6 +101,7 @@ const Navbar = () => {
         </ul>
       </div>
 
+      {/* Mobile Menu Items */}
       {menuOpen && (
         <div className="sm:hidden px-4 pb-4 pt-2">
           <ul className="flex flex-col gap-1 font-semibold bg-[#ffffffb0] rounded-lg">

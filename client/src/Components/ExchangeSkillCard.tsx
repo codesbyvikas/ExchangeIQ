@@ -1,8 +1,8 @@
 import React from 'react';
+import {  useNavigate } from 'react-router-dom';
 import Avatar from '../assets/Avatar.png';
-import { Link, useNavigate } from 'react-router-dom';
-import type { JSX } from 'react';
 import { ClipLoader } from 'react-spinners';
+import type { JSX } from 'react';
 
 export interface Skill {
   _id: string;
@@ -18,7 +18,7 @@ export interface User {
   photo?: string;
 }
 
-export interface ExchangeCardProps {
+interface Props {
   skill: Skill;
   exchangeFor: Skill;
   user: User;
@@ -31,8 +31,13 @@ export interface ExchangeCardProps {
   isLoading?: boolean;
 }
 
-const ExchangeSkillCard: React.FC<ExchangeCardProps> = ({ skill, exchangeFor, user, onSendInvite, isLoading }) => {
-
+const ExchangeSkillCard: React.FC<Props> = ({
+  skill,
+  exchangeFor,
+  user,
+  onSendInvite,
+  isLoading
+}) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -41,31 +46,22 @@ const ExchangeSkillCard: React.FC<ExchangeCardProps> = ({ skill, exchangeFor, us
 
   return (
     <div className='relative w-40 min-w-80 p-3 bg-white flex flex-col gap-4 rounded-2xl shadow-lg transition-transform cursor-pointer hover:-translate-y-2'>
-      <button
-      onClick={()=> navigate(`/profile/${user._id}`)}
-      >
-        <div className='flex flex-row items-center gap-2'>
-        <Link to={`/profile/${user._id}`}>
-          <img className='w-10 h-10 rounded-full' src={user.photo || Avatar} alt="Avatar" />
-        </Link>
+      <div onClick={() => navigate(`/profile/${user._id}`)} className='flex flex-row items-center gap-2'>
+        <img className='w-10 h-10 rounded-full' src={user.photo || Avatar} alt='Avatar' />
         <h4 className='text-lg font-semibold'>{user.name}</h4>
       </div>
-      </button>
-      
 
       <div className='flex flex-col items-center justify-center'>
         <div className='flex items-center justify-center w-16 h-16 rounded-full bg-[#e0f2ff] text-5xl mb-2'>
           {skill.icon}
         </div>
         <h2 className='text-xl font-semibold text-gray-800 mb-2'>{skill.name}</h2>
-
         <div className='flex flex-wrap gap-2 mb-14'>
           <h4>Exchange for:</h4>
           <span className='bg-[#f0f4f8] font-semibold text-[#3178C6] px-2 py-1 rounded'>
             {exchangeFor.name}
           </span>
         </div>
-
         <button
           onClick={handleClick}
           disabled={isLoading}

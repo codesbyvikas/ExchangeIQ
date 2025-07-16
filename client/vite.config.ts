@@ -7,7 +7,6 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    // Minimal configuration - this should work with any version
     nodePolyfills(),
   ],
   define: {

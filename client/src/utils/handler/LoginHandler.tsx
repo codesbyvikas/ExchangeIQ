@@ -1,49 +1,40 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { RotateLoader } from "react-spinners";
-import axios from "axios";
 
 const LoginRedirectHandler = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const API_URL = import.meta.env.VITE_API_BASE_URL;
+  const checkProfile = async () => {
+    try {
+      const token = searchParams.get("token");
+      const profileComplete = searchParams.get("profileComplete") === "true";
+      const missingFields = searchParams.get("missingFields")?.split(",") || [];
 
-    const checkProfile = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/auth/google/success`, {
-          withCredentials: true, 
-        });
-
-        const data = res.data;
-
-        if (!data.success) {
-          return navigate("/auth");
-        }
-
-        const { profileComplete, missingFields } = data;
-
-        if (profileComplete) {
-          return navigate("/");
-        }
-
-        if (missingFields.includes("skillsToLearn")) {
-          return navigate("/profile/skills/learn");
-        }
-
-        if (missingFields.includes("skillsToTeach")) {
-          return navigate("/profile/skills/teach");
-        }
-
-        return navigate("/");
-      } catch (err) {
-        console.error("Login check failed:", err);
-        navigate("/auth");
+      if (!token) {
+        console.error("Missing token in URL");
+        return navigate("/auth");
       }
-    };
 
-    checkProfile();
-  }, [navigate]);
+      localStorage.setItem("token", token);
+
+      if (profileComplete) return navigate("/");
+      if (missingFields.includes("skillsToLearn")) return navigate("/profile/skills/learn");
+      if (missingFields.includes("skillsToTeach")) return navigate("/profile/skills/teach");
+
+      navigate("/");
+    } catch (err) {
+      console.error("Login check failed:", err);
+      navigate("/auth");
+    }
+  };
+
+  // Just call the async function; don't return it
+  checkProfile();
+}, [navigate, searchParams]);
+
 
   return (
     <div className="flex items-center justify-center h-screen bg-gradient-to-br from-[#e0f2ff] to-[#f8fafc]">
