@@ -8,6 +8,7 @@ import {
   FaPlus,
   FaTrash,
   FaTimes,
+  FaArrowLeft,
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
@@ -16,7 +17,6 @@ import chatApiHelper from '../utils/api/chatApiHelper';
 import { getMediaStream, createPeer, stopMediaStream } from '../utils/services/webRTC';
 import type { ChatType, MessageType } from '../utils/types/chat';
 
-// Types
 interface MediaPreview {
   file: File;
   url: string;
@@ -36,13 +36,11 @@ interface CallState {
   callAccepted: boolean;
 }
 
-// Socket connection
-const socket: Socket = io(import.meta.env.VITE_SOCKET_URL , {
+const socket: Socket = io(import.meta.env.VITE_SOCKET_URL, {
   withCredentials: true,
 });
 
 const ChatPage: React.FC = () => {
-  // Chat state
   const [chatList, setChatList] = useState<ChatType[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatType | null>(null);
   const [message, setMessage] = useState<string>('');
@@ -51,8 +49,9 @@ const ChatPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const [showMediaOptions, setShowMediaOptions] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
+  const [showChatList, setShowChatList] = useState<boolean>(true);
 
-  // Call state
   const [callState, setCallState] = useState<CallState>({
     peer: null,
     stream: null,
@@ -60,15 +59,25 @@ const ChatPage: React.FC = () => {
     callAccepted: false,
   });
 
-  // Refs
   const chatEndRef = useRef<HTMLDivElement>(null);
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const userVideoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
 
-  // Load chat list
   useEffect(() => {
-    const loadChats = async (): Promise<void> => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setShowChatList(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const loadChats = async () => {
       try {
         const chats = await chatApiHelper.getChats();
         setChatList(chats || []);
@@ -79,18 +88,13 @@ const ChatPage: React.FC = () => {
     loadChats();
   }, []);
 
-  // Scroll to latest message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedChat?.messages]);
 
-  // Socket listeners for call
   useEffect(() => {
-    const handleIncomingCall = (data: { from: string; signal: Peer.SignalData; type: 'video' | 'audio' }) => {
-      setCallState(prev => ({
-        ...prev,
-        incomingCall: { from: data.from, signal: data.signal, type: data.type }
-      }));
+    const handleIncomingCall = (data: IncomingCall) => {
+      setCallState(prev => ({ ...prev, incomingCall: data }));
     };
 
     const handleCallAccepted = (signal: Peer.SignalData) => {
@@ -112,32 +116,42 @@ const ChatPage: React.FC = () => {
     };
   }, [callState.peer]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       endCall();
     };
   }, []);
 
-  const handleSelectChat = async (chat: ChatType): Promise<void> => {
+  const handleSelectChat = async (chat: ChatType) => {
     setSelectedChat(null);
     try {
       const updatedChat = await chatApiHelper.getChatById(chat.id);
       setSelectedChat(updatedChat);
       resetInputState();
+      
+      // Hide chat list on mobile when a chat is selected
+      if (isMobile) {
+        setShowChatList(false);
+      }
     } catch (error) {
       console.error('Failed to load chat:', error);
     }
   };
 
-  const resetInputState = (): void => {
+  const handleBackToChats = () => {
+    setSelectedChat(null);
+    setShowChatList(true);
+    resetInputState();
+  };
+
+  const resetInputState = () => {
     setShowEmojiPicker(false);
     setShowMediaOptions(false);
     setMessage('');
     setMediaPreview(null);
   };
 
-  const handleSend = async (): Promise<void> => {
+  const handleSend = async () => {
     if (!selectedChat || (!message.trim() && !mediaPreview)) return;
 
     setIsUploading(true);
@@ -153,17 +167,15 @@ const ChatPage: React.FC = () => {
           publicId: upload.publicId,
         });
       } else {
-        newMessage = await chatApiHelper.sendMessage(selectedChat.id, { 
-          text: message.trim() 
+        newMessage = await chatApiHelper.sendMessage(selectedChat.id, {
+          text: message.trim(),
         });
       }
 
-      // Update selected chat messages
-      setSelectedChat(prev => 
+      setSelectedChat(prev =>
         prev ? { ...prev, messages: [...prev.messages, newMessage] } : prev
       );
 
-      // Update chat list
       setChatList(prev =>
         prev.map(chat =>
           chat.id === selectedChat.id
@@ -181,10 +193,92 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: MediaPreview['type']
-  ): void => {
+  const callUser = useCallback(async (isVideoCall: boolean = true) => {
+    if (!selectedChat) return;
+    try {
+      const constraints = isVideoCall ? { video: true, audio: true } : { video: false, audio: true };
+      const localStream = await getMediaStream(constraints);
+      setCallState(prev => ({ ...prev, stream: localStream }));
+      if (myVideoRef.current && isVideoCall) myVideoRef.current.srcObject = localStream;
+
+      const peer = createPeer(
+        true,
+        localStream,
+        signalData => {
+          socket.emit('callUser', {
+            userToCall: selectedChat.id,
+            from: socket.id,
+            signalData,
+            type: isVideoCall ? 'video' : 'audio',
+          });
+        },
+        remoteStream => {
+          if (userVideoRef.current) userVideoRef.current.srcObject = remoteStream;
+        },
+        error => {
+          console.error('Peer error:', error);
+          endCall();
+        }
+      );
+
+      setCallState(prev => ({ ...prev, peer, callAccepted: true }));
+    } catch (error) {
+      console.error('Failed to start call:', error);
+      alert('Failed to start call. Please check your camera and mic permissions.');
+    }
+  }, [selectedChat]);
+
+  const answerCall = useCallback(async () => {
+    if (!callState.incomingCall) return;
+    try {
+      const isVideoCall = callState.incomingCall.type === 'video';
+      const constraints = isVideoCall ? { video: true, audio: true } : { video: false, audio: true };
+      const localStream = await getMediaStream(constraints);
+      setCallState(prev => ({ ...prev, stream: localStream }));
+      if (myVideoRef.current && isVideoCall) myVideoRef.current.srcObject = localStream;
+
+      const peer = createPeer(
+        false,
+        localStream,
+        signalData => {
+          socket.emit('answerCall', {
+            to: callState.incomingCall!.from,
+            signal: signalData,
+          });
+        },
+        remoteStream => {
+          if (userVideoRef.current) userVideoRef.current.srcObject = remoteStream;
+        },
+        error => {
+          console.error('Peer error:', error);
+          endCall();
+        }
+      );
+
+      peer.signal(callState.incomingCall.signal);
+      setCallState(prev => ({ ...prev, peer, callAccepted: true, incomingCall: null }));
+    } catch (error) {
+      console.error('Failed to answer call:', error);
+      alert('Failed to answer call. Please check your camera and mic permissions.');
+    }
+  }, [callState.incomingCall]);
+
+  const endCall = useCallback(() => {
+    callState.peer?.destroy();
+    stopMediaStream(callState.stream);
+    setCallState({ peer: null, stream: null, incomingCall: null, callAccepted: false });
+    if (selectedChat) socket.emit('endCall', { to: selectedChat.id });
+  }, [callState.peer, callState.stream, selectedChat]);
+
+  const rejectCall = useCallback(() => {
+    setCallState(prev => ({ ...prev, incomingCall: null }));
+  }, []);
+
+  const handleEmojiClick = (emojiData: { emoji: string }) => {
+    setMessage(prev => prev + emojiData.emoji);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: MediaPreview['type']) => {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
@@ -193,138 +287,12 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const handleEmojiClick = (emojiData: { emoji: string }): void => {
-    setMessage(prev => prev + emojiData.emoji);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && canSend) {
       handleSend();
     }
   };
 
-  // Call functions
-  const callUser = useCallback(async (isVideoCall: boolean = true): Promise<void> => {
-    if (!selectedChat) return;
-
-    try {
-      const constraints = isVideoCall 
-        ? { video: true, audio: true }
-        : { video: false, audio: true };
-      
-      const localStream = await getMediaStream(constraints);
-      
-      setCallState(prev => ({ ...prev, stream: localStream }));
-      
-      if (myVideoRef.current && isVideoCall) {
-        myVideoRef.current.srcObject = localStream;
-      }
-
-      const peer = createPeer(
-        true,
-        localStream,
-        (signalData: Peer.SignalData) => {
-          socket.emit('callUser', {
-            userToCall: selectedChat.id,
-            from: socket.id,
-            signalData,
-            type: isVideoCall ? 'video' : 'audio',
-          });
-        },
-        (remoteStream: MediaStream) => {
-          if (userVideoRef.current) {
-            userVideoRef.current.srcObject = remoteStream;
-          }
-        },
-        (error: Error) => {
-          console.error('Peer error:', error);
-          endCall();
-        }
-      );
-
-      setCallState(prev => ({
-        ...prev,
-        peer,
-        callAccepted: true
-      }));
-    } catch (error) {
-      console.error('Failed to start call:', error);
-      alert('Failed to start call. Please check your camera and microphone permissions.');
-    }
-  }, [selectedChat]);
-
-  const answerCall = useCallback(async (): Promise<void> => {
-    if (!callState.incomingCall) return;
-
-    try {
-      const isVideoCall = callState.incomingCall.type === 'video';
-      const constraints = isVideoCall 
-        ? { video: true, audio: true }
-        : { video: false, audio: true };
-      
-      const localStream = await getMediaStream(constraints);
-      
-      setCallState(prev => ({ ...prev, stream: localStream }));
-      
-      if (myVideoRef.current && isVideoCall) {
-        myVideoRef.current.srcObject = localStream;
-      }
-
-      const peer = createPeer(
-        false,
-        localStream,
-        (signalData: Peer.SignalData) => {
-          socket.emit('answerCall', { 
-            to: callState.incomingCall!.from, 
-            signal: signalData 
-          });
-        },
-        (remoteStream: MediaStream) => {
-          if (userVideoRef.current) {
-            userVideoRef.current.srcObject = remoteStream;
-          }
-        },
-        (error: Error) => {
-          console.error('Peer error:', error);
-          endCall();
-        }
-      );
-
-      peer.signal(callState.incomingCall.signal);
-
-      setCallState(prev => ({
-        ...prev,
-        peer,
-        callAccepted: true,
-        incomingCall: null
-      }));
-    } catch (error) {
-      console.error('Failed to answer call:', error);
-      alert('Failed to answer call. Please check your camera and microphone permissions.');
-    }
-  }, [callState.incomingCall]);
-
-  const endCall = useCallback((): void => {
-    callState.peer?.destroy();
-    stopMediaStream(callState.stream);
-    
-    setCallState({
-      peer: null,
-      stream: null,
-      incomingCall: null,
-      callAccepted: false
-    });
-
-    if (selectedChat) {
-      socket.emit('endCall', { to: selectedChat.id });
-    }
-  }, [callState.peer, callState.stream, selectedChat]);
-
-  const rejectCall = useCallback((): void => {
-    setCallState(prev => ({ ...prev, incomingCall: null }));
-  }, []);
-
-  // Computed values
   const filteredChats = chatList.filter(chat =>
     chat.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -332,22 +300,29 @@ const ChatPage: React.FC = () => {
   const canSend = Boolean(selectedChat && !isUploading && (message.trim() || mediaPreview));
 
   return (
-    <div 
-      className="flex h-dvh w-screen font-sans overflow-hidden" 
+    <div
+      className="flex h-dvh w-screen font-sans overflow-hidden"
       style={{ background: 'linear-gradient(to bottom, #E0F2FF, #FDECEA)' }}
     >
-      {/* Sidebar */}
-      <div className="w-72 bg-[#3178C6] text-white flex flex-col p-4 overflow-y-auto">
+      {/* SIDEBAR - Chat List */}
+      <div
+        className={`${
+          isMobile
+            ? showChatList
+              ? 'w-full'
+              : 'w-0 opacity-0 pointer-events-none'
+            : 'w-72'
+        } bg-[#3178C6] text-white flex-shrink-0 flex flex-col p-4 overflow-y-auto transition-all duration-300 ease-in-out`}
+      >
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold tracking-wide">ExchangeIQ</h1>
-          <button 
-            onClick={() => navigate('/')} 
+          <button
+            onClick={() => navigate('/')}
             className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2 transition-colors"
           >
             <FaTimes size={14} />
           </button>
         </div>
-        
         <input
           type="text"
           placeholder="Search name..."
@@ -355,16 +330,13 @@ const ChatPage: React.FC = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="px-3 py-2 mb-4 rounded bg-white text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
-        
         <div className="space-y-2">
-          {filteredChats.map((chat) => (
+          {filteredChats.map(chat => (
             <div
               key={chat.id}
               onClick={() => handleSelectChat(chat)}
               className={`cursor-pointer p-3 rounded-lg transition-colors ${
-                selectedChat?.id === chat.id 
-                  ? 'bg-[#245fa0]' 
-                  : 'hover:bg-[#276db9]'
+                selectedChat?.id === chat.id ? 'bg-[#245fa0]' : 'hover:bg-[#276db9]'
               }`}
             >
               <div className="font-semibold">{chat.name}</div>
@@ -375,31 +347,50 @@ const ChatPage: React.FC = () => {
       </div>
 
       {/* Chat Window */}
-      <div className="flex flex-col flex-1 rounded-tl-xl shadow-md overflow-hidden">
+      <div
+        className={`${
+          isMobile
+            ? showChatList
+              ? 'w-0 opacity-0 pointer-events-none'
+              : 'w-full'
+            : 'flex-1'
+        } flex flex-col rounded-tl-xl shadow-md overflow-hidden transition-all duration-300 ease-in-out`}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-white">
-          <div className="text-left">
-            <div className="text-lg font-semibold">
-              {selectedChat?.name || 'Select a user'}
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
+          <div className="flex items-center gap-3">
+            {/* Back button for mobile */}
+            {isMobile && (
+              <button
+                onClick={handleBackToChats}
+                className="text-[#3178C6] hover:text-blue-700 transition-colors p-1"
+              >
+                <FaArrowLeft size={18} />
+              </button>
+            )}
+            <div className="text-left">
+              <div className="text-lg font-semibold">
+                {selectedChat?.name || 'Select a user'}
+              </div>
+              <div className="text-sm text-gray-500">{selectedChat?.skill}</div>
             </div>
-            <div className="text-sm text-gray-500">{selectedChat?.skill}</div>
           </div>
           
           {selectedChat && (
-            <div className="flex gap-4 text-[#3178C6] items-center">
+            <div className="flex gap-3 text-[#3178C6] items-center">
               <button
                 onClick={() => callUser(false)}
-                className="hover:text-blue-700 transition-colors"
+                className="hover:text-blue-700 transition-colors p-2"
                 title="Voice call"
               >
-                <FaPhone size={20} />
+                <FaPhone size={18} />
               </button>
               <button
                 onClick={() => callUser(true)}
-                className="hover:text-blue-700 transition-colors"
+                className="hover:text-blue-700 transition-colors p-2"
                 title="Video call"
               >
-                <FaVideo size={20} />
+                <FaVideo size={18} />
               </button>
             </div>
           )}
@@ -413,17 +404,17 @@ const ChatPage: React.FC = () => {
               autoPlay 
               muted 
               playsInline 
-              className="w-40 h-32 rounded border-2 border-gray-600" 
+              className="w-32 h-24 md:w-40 md:h-32 rounded border-2 border-gray-600" 
             />
             <video 
               ref={userVideoRef} 
               autoPlay 
               playsInline 
-              className="w-40 h-32 rounded border-2 border-gray-600" 
+              className="w-32 h-24 md:w-40 md:h-32 rounded border-2 border-gray-600" 
             />
             <button 
               onClick={endCall} 
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors"
+              className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 md:px-4 md:py-2 rounded transition-colors text-sm"
             >
               End Call
             </button>
@@ -452,17 +443,17 @@ const ChatPage: React.FC = () => {
         )}
 
         {/* Messages */}
-        <div className="flex-1 p-6 overflow-y-auto space-y-3">
+        <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-3">
           {selectedChat?.messages.map((msg, idx) => (
             <div
               key={idx}
-              className={`max-w-md px-4 py-2 rounded-lg ${
+              className={`max-w-xs md:max-w-md px-3 py-2 md:px-4 md:py-2 rounded-lg ${
                 msg.sender === 'you'
                   ? 'bg-[#CDE8FF] self-end ml-auto text-right'
                   : 'bg-white self-start mr-auto'
               } shadow-[0_4px_8px_rgba(0,0,0,0.1)]`}
             >
-             {msg.text && <div className="mb-1">{msg.text}</div>}
+              {msg.text && <div className="mb-1 text-sm md:text-base">{msg.text}</div>}
 
               {msg.mediaUrl && (
                 <div className="mt-2">
@@ -470,14 +461,14 @@ const ChatPage: React.FC = () => {
                     <img
                       src={msg.mediaUrl}
                       alt="Sent media"
-                      className="max-w-xs max-h-64 rounded shadow"
+                      className="max-w-full max-h-48 md:max-h-64 rounded shadow"
                     />
                   )}
                   {msg.mediaType === 'video' && (
                     <video
                       src={msg.mediaUrl}
                       controls
-                      className="max-w-xs rounded shadow"
+                      className="max-w-full rounded shadow"
                     />
                   )}
                   {msg.mediaType === 'audio' && (
@@ -492,7 +483,7 @@ const ChatPage: React.FC = () => {
                       href={msg.mediaUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 underline"
+                      className="text-blue-600 underline text-sm"
                     >
                       📄 View Document
                     </a>
@@ -500,7 +491,7 @@ const ChatPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="text-xs text-gray-400">{msg.timestamp}</div>
+              <div className="text-xs text-gray-400 mt-1">{msg.timestamp}</div>
             </div>
           ))}
           <div ref={chatEndRef} />
@@ -510,12 +501,12 @@ const ChatPage: React.FC = () => {
         {mediaPreview && (
           <div className="px-4 py-2 bg-gray-50 border-t">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 truncate">
                 {mediaPreview.type}: {mediaPreview.file.name}
               </span>
               <button
                 onClick={() => setMediaPreview(null)}
-                className="text-red-500 hover:text-red-700"
+                className="text-red-500 hover:text-red-700 p-1"
               >
                 <FaTrash size={14} />
               </button>
@@ -524,7 +515,7 @@ const ChatPage: React.FC = () => {
         )}
 
         {/* Input */}
-        <div className="relative flex items-center px-4 py-3 bg-white border-t gap-3">
+        <div className="relative flex items-center px-3 py-2 md:px-4 md:py-3 bg-white border-t gap-2 md:gap-3">
           {/* Emoji Picker */}
           {showEmojiPicker && (
             <div className="absolute bottom-16 right-4 z-50">
@@ -569,16 +560,16 @@ const ChatPage: React.FC = () => {
 
           <button 
             onClick={() => setShowMediaOptions(prev => !prev)} 
-            className="text-gray-600 hover:text-gray-800 transition-colors"
+            className="text-gray-600 hover:text-gray-800 transition-colors p-2"
           >
-            <FaPlus size={18} />
+            <FaPlus size={16} />
           </button>
           
           <button 
             onClick={() => setShowEmojiPicker(prev => !prev)} 
-            className="text-yellow-500 hover:text-yellow-600 transition-colors"
+            className="text-yellow-500 hover:text-yellow-600 transition-colors p-2"
           >
-            <FaSmile size={18} />
+            <FaSmile size={16} />
           </button>
           
           <input
@@ -587,20 +578,20 @@ const ChatPage: React.FC = () => {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyPress}
-            className="flex-1 border-none outline-none px-4 py-2 rounded-full bg-gray-100 disabled:opacity-50 focus:bg-white focus:ring-2 focus:ring-blue-300"
+            className="flex-1 border-none outline-none px-3 py-2 md:px-4 md:py-2 rounded-full bg-gray-100 disabled:opacity-50 focus:bg-white focus:ring-2 focus:ring-blue-300 text-sm md:text-base"
             disabled={isUploading}
           />
           
           <button
             onClick={canSend ? handleSend : undefined}
             disabled={!canSend}
-            className={`transition-colors ${
+            className={`transition-colors p-2 ${
               canSend 
                 ? 'text-[#3178C6] hover:text-blue-700 cursor-pointer' 
                 : 'text-gray-400 cursor-not-allowed'
             }`}
           >
-            <FaPaperPlane size={18} />
+            <FaPaperPlane size={16} />
           </button>
         </div>
       </div>
