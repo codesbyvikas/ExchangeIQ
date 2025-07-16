@@ -35,6 +35,12 @@ const isValidUrl = (string) => {
   }
 };
 
+// Helper function to get user ID from JWT token
+const getUserId = (req) => {
+  // JWT token contains user data, try both _id and id
+  return req.user._id || req.user.id;
+};
+
 // Helper function to format chat for response
 const formatChatForUser = (chat, userId) => {
   const otherParticipant = chat.participants.find(p => p._id.toString() !== userId.toString());
@@ -72,10 +78,12 @@ const formatChatForUser = (chat, userId) => {
 // Get all chats for a user
 router.get('/', authCheck, async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = getUserId(req);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+
+    console.log('📱 Fetching chats for user:', userId);
 
     const chats = await Chat.find({
       participants: userId
@@ -93,6 +101,8 @@ router.get('/', authCheck, async (req, res) => {
 
     const formattedChats = chats.map(chat => formatChatForUser(chat, userId));
 
+    console.log(`✅ Found ${formattedChats.length} chats for user`);
+
     res.json({
       chats: formattedChats,
       pagination: {
@@ -104,7 +114,7 @@ router.get('/', authCheck, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching chats:', error);
+    console.error('❌ Error fetching chats:', error);
     res.status(500).json({
       message: 'Failed to fetch chats',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -112,19 +122,20 @@ router.get('/', authCheck, async (req, res) => {
   }
 });
 
-// Send a message - CORRECTED VERSION
+// Send a message - Updated for JWT
 router.post('/:chatId/message', authCheck, async (req, res) => {
   try {
     const { chatId } = req.params;
     const { text, mediaUrl, mediaType, publicId } = req.body;
-    const userId = req.user._id;
+    const userId = getUserId(req);
 
-    // Enhanced debug logging
-    // console.log('=== MESSAGE SEND DEBUG ===');
-    // console.log('Chat ID:', chatId);
-    // console.log('User ID:', userId);
-    // console.log('Request body:', JSON.stringify(req.body, null, 2));
-    // console.log('Request headers:', req.headers['content-type']);
+    console.log('📤 Sending message:', {
+      chatId,
+      userId,
+      hasText: !!(text && text.trim()),
+      hasMedia: !!(mediaUrl && mediaUrl.trim()),
+      mediaType
+    });
 
     // Validate input
     const validationErrors = validateMessage(text, mediaUrl, mediaType);
@@ -154,7 +165,9 @@ router.post('/:chatId/message', authCheck, async (req, res) => {
       return res.status(404).json({ message: 'Chat not found' });
     }
 
-    if (!chat.participants.includes(userId)) {
+    // Check if user is participant (handle both ObjectId and string comparison)
+    const isParticipant = chat.participants.some(p => p.toString() === userId.toString());
+    if (!isParticipant) {
       console.log('❌ User not in chat participants');
       return res.status(403).json({ message: 'Not authorized to send messages in this chat' });
     }
@@ -170,7 +183,12 @@ router.post('/:chatId/message', authCheck, async (req, res) => {
       isRead: false
     };
 
-    console.log('📝 Creating message object:', JSON.stringify(newMessage, null, 2));
+    console.log('📝 Creating message object:', {
+      sender: newMessage.sender,
+      hasText: !!newMessage.text,
+      hasMedia: !!newMessage.mediaUrl,
+      mediaType: newMessage.mediaType
+    });
 
     // Add message to chat
     chat.messages.push(newMessage);
@@ -212,9 +230,7 @@ router.post('/:chatId/message', authCheck, async (req, res) => {
       isRead: addedMessage.isRead
     };
 
-    console.log('📤 Sending response:', JSON.stringify(responseMessage, null, 2));
-    console.log('=== END MESSAGE SEND DEBUG ===');
-
+    console.log('📤 Sending response message');
     res.status(201).json(responseMessage);
     
   } catch (error) {
@@ -235,7 +251,9 @@ router.post('/:chatId/message', authCheck, async (req, res) => {
 router.patch('/:chatId/read', authCheck, async (req, res) => {
   try {
     const { chatId } = req.params;
-    const userId = req.user._id;
+    const userId = getUserId(req);
+
+    console.log('👁️ Marking messages as read:', { chatId, userId });
 
     const chat = await Chat.findById(chatId);
 
@@ -243,7 +261,9 @@ router.patch('/:chatId/read', authCheck, async (req, res) => {
       return res.status(404).json({ message: 'Chat not found' });
     }
 
-    if (!chat.participants.includes(userId)) {
+    // Check if user is participant
+    const isParticipant = chat.participants.some(p => p.toString() === userId.toString());
+    if (!isParticipant) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
@@ -258,6 +278,7 @@ router.patch('/:chatId/read', authCheck, async (req, res) => {
 
     if (markedCount > 0) {
       await chat.save();
+      console.log(`✅ Marked ${markedCount} messages as read`);
     }
 
     res.json({
@@ -265,7 +286,7 @@ router.patch('/:chatId/read', authCheck, async (req, res) => {
       markedCount
     });
   } catch (error) {
-    console.error('Error marking messages as read:', error);
+    console.error('❌ Error marking messages as read:', error);
     res.status(500).json({
       message: 'Failed to mark messages as read',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -277,9 +298,11 @@ router.patch('/:chatId/read', authCheck, async (req, res) => {
 router.get('/:chatId', authCheck, async (req, res) => {
   try {
     const { chatId } = req.params;
-    const userId = req.user._id;
+    const userId = getUserId(req);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
+
+    console.log('📖 Fetching chat details:', { chatId, userId, page, limit });
 
     const chat = await Chat.findById(chatId)
       .populate('participants', 'name photo')
@@ -290,7 +313,9 @@ router.get('/:chatId', authCheck, async (req, res) => {
       return res.status(404).json({ message: 'Chat not found' });
     }
 
-    if (!chat.participants.some(p => p._id.toString() === userId.toString())) {
+    // Check if user is participant
+    const isParticipant = chat.participants.some(p => p._id.toString() === userId.toString());
+    if (!isParticipant) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
@@ -299,6 +324,8 @@ router.get('/:chatId', authCheck, async (req, res) => {
     const startIndex = Math.max(0, totalMessages - (page * limit));
     const endIndex = Math.max(0, totalMessages - ((page - 1) * limit));
     const paginatedMessages = chat.messages.slice(startIndex, endIndex);
+
+    console.log(`📄 Paginated ${paginatedMessages.length} messages from ${totalMessages} total`);
 
     // Create a temporary chat object for formatting
     const chatForFormat = {
@@ -319,7 +346,7 @@ router.get('/:chatId', authCheck, async (req, res) => {
 
     res.json(formattedChat);
   } catch (error) {
-    console.error('Error fetching chat:', error);
+    console.error('❌ Error fetching chat:', error);
     res.status(500).json({
       message: 'Failed to fetch chat',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -331,7 +358,9 @@ router.get('/:chatId', authCheck, async (req, res) => {
 router.delete('/:chatId/message/:messageId', authCheck, async (req, res) => {
   try {
     const { chatId, messageId } = req.params;
-    const userId = req.user._id;
+    const userId = getUserId(req);
+
+    console.log('🗑️ Deleting message:', { chatId, messageId, userId });
 
     const chat = await Chat.findById(chatId);
 
@@ -339,7 +368,9 @@ router.delete('/:chatId/message/:messageId', authCheck, async (req, res) => {
       return res.status(404).json({ message: 'Chat not found' });
     }
 
-    if (!chat.participants.includes(userId)) {
+    // Check if user is participant
+    const isParticipant = chat.participants.some(p => p.toString() === userId.toString());
+    if (!isParticipant) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
@@ -362,9 +393,10 @@ router.delete('/:chatId/message/:messageId', authCheck, async (req, res) => {
 
     await chat.save();
 
+    console.log('✅ Message deleted successfully');
     res.json({ message: 'Message deleted successfully' });
   } catch (error) {
-    console.error('Error deleting message:', error);
+    console.error('❌ Error deleting message:', error);
     res.status(500).json({
       message: 'Failed to delete message',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -376,7 +408,9 @@ router.delete('/:chatId/message/:messageId', authCheck, async (req, res) => {
 router.get('/:chatId/stats', authCheck, async (req, res) => {
   try {
     const { chatId } = req.params;
-    const userId = req.user._id;
+    const userId = getUserId(req);
+
+    console.log('📊 Fetching chat stats:', { chatId, userId });
 
     const chat = await Chat.findById(chatId);
 
@@ -384,7 +418,9 @@ router.get('/:chatId/stats', authCheck, async (req, res) => {
       return res.status(404).json({ message: 'Chat not found' });
     }
 
-    if (!chat.participants.includes(userId)) {
+    // Check if user is participant
+    const isParticipant = chat.participants.some(p => p.toString() === userId.toString());
+    if (!isParticipant) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
@@ -401,11 +437,117 @@ router.get('/:chatId/stats', authCheck, async (req, res) => {
       lastActivity: chat.lastMessage
     };
 
+    console.log('📊 Chat stats:', stats);
     res.json(stats);
   } catch (error) {
-    console.error('Error fetching chat stats:', error);
+    console.error('❌ Error fetching chat stats:', error);
     res.status(500).json({
       message: 'Failed to fetch chat statistics',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Additional route: Get unread message count across all chats
+router.get('/unread/count', authCheck, async (req, res) => {
+  try {
+    const userId = getUserId(req);
+
+    console.log('📬 Getting unread count for user:', userId);
+
+    const chats = await Chat.find({
+      participants: userId
+    });
+
+    let totalUnread = 0;
+    const chatUnreadCounts = {};
+
+    chats.forEach(chat => {
+      const unreadCount = chat.messages.filter(msg =>
+        msg.sender.toString() !== userId.toString() && !msg.isRead
+      ).length;
+      
+      totalUnread += unreadCount;
+      chatUnreadCounts[chat._id] = unreadCount;
+    });
+
+    console.log(`📬 Total unread messages: ${totalUnread}`);
+
+    res.json({
+      totalUnread,
+      chatUnreadCounts
+    });
+  } catch (error) {
+    console.error('❌ Error fetching unread count:', error);
+    res.status(500).json({
+      message: 'Failed to fetch unread count',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Additional route: Search messages within a chat
+router.get('/:chatId/search', authCheck, async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { q: query, limit = 20 } = req.query;
+    const userId = getUserId(req);
+
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({ message: 'Search query must be at least 2 characters' });
+    }
+
+    console.log('🔍 Searching messages:', { chatId, query, userId });
+
+    const chat = await Chat.findById(chatId)
+      .populate('messages.sender', 'name');
+
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat not found' });
+    }
+
+    // Check if user is participant
+    const isParticipant = chat.participants.some(p => p.toString() === userId.toString());
+    if (!isParticipant) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    // Search messages
+    const searchResults = chat.messages
+      .filter(msg => 
+        msg.text && 
+        msg.text.toLowerCase().includes(query.toLowerCase()) && 
+        !msg.isDeleted
+      )
+      .slice(0, parseInt(limit))
+      .map(msg => ({
+        id: msg._id,
+        sender: msg.sender._id.toString() === userId.toString() ? 'you' : 'them',
+        senderName: msg.sender.name,
+        text: msg.text,
+        timestamp: msg.timestamp.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        fullTimestamp: msg.timestamp.toISOString(),
+        // Highlight the search term (simple implementation)
+        highlightedText: msg.text.replace(
+          new RegExp(`(${query})`, 'gi'),
+          '<mark>$1</mark>'
+        )
+      }));
+
+    console.log(`🔍 Found ${searchResults.length} matching messages`);
+
+    res.json({
+      query,
+      results: searchResults,
+      count: searchResults.length
+    });
+  } catch (error) {
+    console.error('❌ Error searching messages:', error);
+    res.status(500).json({
+      message: 'Failed to search messages',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

@@ -1,13 +1,11 @@
-// index.js - Main server file for Render deployment using cookie-session
-
 const express = require("express");
-const cookieSession = require("cookie-session");
 const passport = require("passport");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
 
 dotenv.config();
 require("./config/google");
@@ -52,34 +50,25 @@ mongoose
     process.exit(1);
   });
 
-// Use cookie-session
-app.use(
-  cookieSession({
-    name: "session",
-    keys: [process.env.SESSION_SECRET || "fallbacksecret"],
-    maxAge: 24 * 60 * 60 * 1000, 
-    secure: true,
-    sameSite: "None",
-    httpOnly: true,
-  })
-);
-
-app.use((req, res, next) => {
-  if (!req.session) return next();
-  req.session.regenerate = cb => cb(); // no-op for compatibility
-  req.session.save = cb => cb();       // no-op for compatibility
-  next();
-});
-// Passport initialization
+// Passport initialization (no session needed for JWT)
 app.use(passport.initialize());
-app.use(passport.session());
 
-// Debug session
-app.use((req, res, next) => {
-  console.log("Session:", req.session);
-  console.log("User:", req.user);
-  next();
-});
+// JWT verification middleware
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1]; // Bearer <token>
+  
+  if (!token) {
+    return res.status(401).json({ error: "No token provided" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+};
 
 // Health check
 app.get("/health", (req, res) => {
@@ -95,7 +84,7 @@ app.use("/invitation", require("./routes/invitation"));
 app.use("/chat", require("./routes/chat"));
 app.use("/media", require("./routes/chatMedia"));
 
-// Socket.IO
+// Socket.IO with JWT authentication
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -107,7 +96,23 @@ const io = new Server(server, {
   transports: ["websocket", "polling"],
 });
 
-// No shared-session needed since we're not using express-session
+// Socket.IO JWT authentication middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  
+  if (!token) {
+    return next(new Error("No token provided"));
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded;
+    next();
+  } catch (err) {
+    next(new Error("Invalid token"));
+  }
+});
+
 require("./sockets/chatSocket")(io);
 
 // 404 handler
@@ -138,4 +143,4 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-module.exports = { app, server, io };
+module.exports = { app, server, io, verifyToken };

@@ -1,22 +1,28 @@
-const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL;
+const jwt = require("jsonwebtoken");
+const User = require("../models/user");
 
-function authCheck(req, res, next) {
-  // 🔍 Debug logs
-  console.log("🧠 Session:", req.session);
-  console.log("🙋‍♂️ User:", req.user);
+const authCheck = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1]; // Bearer <token>
+    
+    if (!token) {
+      return res.status(401).json({ error: "No token provided" });
+    }
 
-  // Safety check + authentication logic
-  if (typeof req.isAuthenticated === "function" && req.isAuthenticated()) {
-    return next();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Fetch full user data from database
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    req.user = user;
+    next();
+  } catch (err) {
+    console.error("Auth check error:", err);
+    return res.status(401).json({ error: "Invalid token" });
   }
-
-  const isApiRequest = req.headers.accept?.includes("application/json") || req.xhr;
-
-  if (isApiRequest) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  res.redirect(`${FRONTEND_BASE_URL}/auth`);
-}
+};
 
 module.exports = authCheck;

@@ -1,12 +1,8 @@
 const User = require('../models/user');
 
 const checkProfileAndRespond = async (req, res) => {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
-    return res.status(401).json({ success: false, message: "Not authenticated" });
-  }
-
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id || req.user.id);
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
