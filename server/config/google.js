@@ -24,13 +24,15 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
+        console.log("🔐 Google Profile:", profile);
+
         let user = await User.findOne({ googleId: profile.id });
 
         if (!user) {
           user = await new User({
             googleId: profile.id,
             name: profile.displayName,
-            photo:profile.photos?.[0]?.value || "",
+            photo: profile.photos?.[0]?.value || "",
             email: profile.emails?.[0]?.value || "",
             profilePicture: profile.photos?.[0]?.value,
             provider: "google",
@@ -39,6 +41,7 @@ passport.use(
 
         return done(null, user);
       } catch (err) {
+        console.error("❌ Error in Google Strategy:", err);
         return done(err, null);
       }
     }

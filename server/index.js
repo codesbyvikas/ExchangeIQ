@@ -59,11 +59,17 @@ app.use(
     keys: [process.env.SESSION_SECRET || "fallbacksecret"],
     maxAge: 24 * 60 * 60 * 1000, 
     secure: true,
-    sameSite: "none",
+    sameSite: "None",
     httpOnly: true,
   })
 );
 
+app.use((req, res, next) => {
+  if (!req.session) return next();
+  req.session.regenerate = cb => cb(); // no-op for compatibility
+  req.session.save = cb => cb();       // no-op for compatibility
+  next();
+});
 // Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
