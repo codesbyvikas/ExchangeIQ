@@ -21,7 +21,7 @@ const Footer = () => {
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                navigate('/documentation');
+                navigate('/doc');
               }}
               className="hover:text-blue-500 font-medium transition"
             >
