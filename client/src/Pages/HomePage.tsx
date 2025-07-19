@@ -120,17 +120,19 @@ const Home = () => {
 
       const otherUsersLearnPosts = learnPostsRes.filter(post => post.fromUser._id !== myId);
       const otherUsersTeachPosts = teachPostsRes.filter(post => post.fromUser._id !== myId);
+      console.log(otherUsersLearnPosts);
+      // console.log(otherUsersTeachPosts);
 
-      const filteredLearnPosts = otherUsersLearnPosts.filter(post =>
-        myLearnSkills.includes(post.learnSkill._id) &&
-        !sent.some(inv =>
+      const filteredLearnPosts = otherUsersTeachPosts.filter(post => 
+        myLearnSkills.includes(post.learnSkill._id) && 
+        !sent.some(inv => 
           inv.toUser._id === post.fromUser._id &&
-          inv.reqType === 'learn' &&
-          inv.skillRequested?._id === post.learnSkill._id
+          inv.reqType === 'learn' && 
+          inv.skillOffered?._id === post.learnSkill._id
         )
       );
 
-      const filteredTeachPosts = otherUsersTeachPosts.filter(post =>
+      const filteredTeachPosts = otherUsersLearnPosts.filter(post =>
         myTeachSkills.includes(post.learnSkill._id) &&
         !sent.some(inv =>
           inv.toUser._id === post.fromUser._id &&
@@ -138,7 +140,8 @@ const Home = () => {
           inv.skillOffered?._id === post.learnSkill._id
         )
       );
-
+      console.log(filteredTeachPosts);
+     
       const exchangeMatches: ExchangePostType[] = [];
 
       for (const theirLearnPost of otherUsersLearnPosts) {
@@ -449,7 +452,7 @@ const Home = () => {
         {/* Skills You Can Teach */}
         {currentUser && (
           <div className="bg-[#ffffffb0] rounded-lg px-6 py-4 shadow-md">
-            <h4 className="font-semibold text-3xl mb-2">Skills You Can Teach</h4>
+            <h4 className="font-semibold text-2xl mb-2">Skills You Can Teach</h4>
             <div className="w-full flex gap-6 overflow-x-auto py-4 px-1">
               {isLoadingTeach ? (
                 <PostLoader />
