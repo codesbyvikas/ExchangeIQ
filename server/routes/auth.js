@@ -50,10 +50,7 @@ router.get("/failed", (req, res) => {
   res.status(401).json({ success: false, message: "Google login failed" });
 });
 
-// Logout (with JWT, just remove token from client)
 router.post("/logout", (req, res) => {
-  // With JWT, logout is handled client-side by removing the token
-  // Optionally, you could implement a token blacklist here
   res.status(200).json({ 
     success: true, 
     message: "Logout successful. Please remove token from client." 
