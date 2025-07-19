@@ -93,12 +93,12 @@ const Navbar = () => {
           <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]" to="/invitations">
             <li>Invitations</li>
           </Link>
-          <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white border-r-[1px]" to="/chat">
+          <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white " to="/chat">
             <li>Chats</li>
           </Link>
-          <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white" to="/skills">
+          {/* <Link className="px-6 py-2 hover:bg-[#3178C6] hover:text-white" to="/skills">
             <li>Skills</li>
-          </Link>
+          </Link> */}
         </ul>
       </div>
 
@@ -115,9 +115,9 @@ const Navbar = () => {
             <Link to="/chat" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
               <li>Chats</li>
             </Link>
-            <Link to="/skills" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
+            {/* <Link to="/skills" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:bg-[#3178C6] hover:text-white">
               <li>Skills</li>
-            </Link>
+            </Link> */}
             {user && (
               <>
                 <Link to="/profile" onClick={() => setMenuOpen(false)} className="px-4 py-2 hover:underline">

@@ -120,8 +120,7 @@ const Home = () => {
 
       const otherUsersLearnPosts = learnPostsRes.filter(post => post.fromUser._id !== myId);
       const otherUsersTeachPosts = teachPostsRes.filter(post => post.fromUser._id !== myId);
-      console.log(otherUsersLearnPosts);
-      // console.log(otherUsersTeachPosts);
+   
 
       const filteredLearnPosts = otherUsersTeachPosts.filter(post => 
         myLearnSkills.includes(post.learnSkill._id) && 
