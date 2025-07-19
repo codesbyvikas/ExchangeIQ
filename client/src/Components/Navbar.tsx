@@ -21,14 +21,15 @@ const Navbar = () => {
   };
 
   const handleLogout = async () => {
-    try {
-      await authApiHelper.logout();
-      setUser(null);
-      navigate('/auth');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
+      try {
+        await authApiHelper.logout(); 
+        localStorage.removeItem('token');
+        setUser(null);
+        navigate('/auth');
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
+    };
 
   useEffect(() => {
     const fetchUserData = async () => {

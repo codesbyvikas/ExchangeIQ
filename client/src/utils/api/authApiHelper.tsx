@@ -4,7 +4,7 @@ const authApiHelper = {
   logout: async () => {
     const token = localStorage.getItem('token');
     const res = await fetch(`${API_URL}/auth/logout`, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
       },
