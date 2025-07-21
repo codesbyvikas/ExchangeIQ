@@ -6,6 +6,7 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
+const agoraTokenRoute = require('./routes/agora');
 
 dotenv.config();
 require("./config/google");
@@ -83,6 +84,7 @@ app.use("/post", require("./routes/post"));
 app.use("/invitation", require("./routes/invitation"));
 app.use("/chat", require("./routes/chat"));
 app.use("/media", require("./routes/chatMedia"));
+app.use('/agora', agoraTokenRoute);
 
 // Socket.IO with JWT authentication
 const io = new Server(server, {

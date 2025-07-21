@@ -37,7 +37,6 @@ const messageSchema = new mongoose.Schema({
   }
 });
 
-// Add index for better query performance
 messageSchema.index({ sender: 1, timestamp: -1 });
 messageSchema.index({ isRead: 1 });
 
