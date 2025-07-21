@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import {
   FaVideo,
@@ -10,12 +10,13 @@ import {
   FaTimes,
   FaArrowLeft,
 } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
-import { io, Socket } from 'socket.io-client';
-import Peer from 'simple-peer';
+import { useNavigate, useParams } from 'react-router-dom';
+import profileApiHelper from '../utils/api/profileApiHelper.tsx';
+import { getSocket } from '../utils/services/socket';
 import chatApiHelper from '../utils/api/chatApiHelper';
-import { getMediaStream, createPeer, stopMediaStream } from '../utils/services/webRTC';
+import VideoCallWrapper from '../Components/VideoCallWrapper';
 import type { ChatType, MessageType } from '../utils/types/chat';
+import type{ UserType } from '../utils/types/user';
 
 interface MediaPreview {
   file: File;
@@ -23,22 +24,7 @@ interface MediaPreview {
   type: 'image' | 'video' | 'audio' | 'document';
 }
 
-interface IncomingCall {
-  from: string;
-  signal: Peer.SignalData;
-  type: 'video' | 'audio';
-}
-
-interface CallState {
-  peer: Peer.Instance | null;
-  stream: MediaStream | null;
-  incomingCall: IncomingCall | null;
-  callAccepted: boolean;
-}
-
-const socket: Socket = io(import.meta.env.VITE_SOCKET_URL, {
-  withCredentials: true,
-});
+const socket = getSocket();
 
 const ChatPage: React.FC = () => {
   const [chatList, setChatList] = useState<ChatType[]>([]);
@@ -50,19 +36,54 @@ const ChatPage: React.FC = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const [showMediaOptions, setShowMediaOptions] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
+  const [currentUser, setCurrentUser] = useState<UserType>();
   const [showChatList, setShowChatList] = useState<boolean>(true);
-
-  const [callState, setCallState] = useState<CallState>({
-    peer: null,
-    stream: null,
-    incomingCall: null,
-    callAccepted: false,
-  });
+  const [incomingCall, setIncomingCall] = useState<{
+    from: string;
+    type: 'video' | 'audio';
+    channelName: string;
+    callerInfo: any;
+  } | null>(null);
+  const [activeCall, setActiveCall] = useState<{
+    channelName: string;
+    uid: number;
+  } | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const myVideoRef = useRef<HTMLVideoElement>(null);
-  const userVideoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
+  const params = useParams();
+
+  // Check if we're in a call from URL params
+
+  useEffect(() => {
+      return () => {
+        socket.disconnect();
+      };
+    }, []);
+    
+     useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const profileRes = await profileApiHelper.getSelfProfile();
+      setCurrentUser(profileRes);
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
+    }
+  };
+
+  fetchProfile();
+}, []);
+
+  useEffect(() => {
+    if (params.channelName && params.uid) {
+      setActiveCall({
+        channelName: params.channelName,
+        uid: parseInt(params.uid)
+      });
+    } else {
+      setActiveCall(null);
+    }
+  }, [params]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -80,6 +101,7 @@ const ChatPage: React.FC = () => {
     const loadChats = async () => {
       try {
         const chats = await chatApiHelper.getChats();
+        
         setChatList(chats || []);
       } catch (error) {
         console.error('Failed to load chats:', error);
@@ -93,43 +115,45 @@ const ChatPage: React.FC = () => {
   }, [selectedChat?.messages]);
 
   useEffect(() => {
-    const handleIncomingCall = (data: IncomingCall) => {
-      setCallState(prev => ({ ...prev, incomingCall: data }));
-    };
+  if (currentUser && socket) {
+    socket.emit('setup', currentUser._id);
+  }
+}, [currentUser]);
 
-    const handleCallAccepted = (signal: Peer.SignalData) => {
-      callState.peer?.signal(signal);
+  useEffect(() => {
+    const handleIncomingCall = (data: {
+      from: string;
+      type: 'video' | 'audio';
+      channelName: string;
+      callerInfo: any;
+    }) => {
+      setIncomingCall(data);
     };
 
     const handleCallEnded = () => {
-      endCall();
+      setIncomingCall(null);
+      if (activeCall) {
+        navigate('/chat');
+      }
     };
 
     socket.on('callIncoming', handleIncomingCall);
-    socket.on('callAccepted', handleCallAccepted);
     socket.on('callEnded', handleCallEnded);
 
     return () => {
       socket.off('callIncoming', handleIncomingCall);
-      socket.off('callAccepted', handleCallAccepted);
       socket.off('callEnded', handleCallEnded);
     };
-  }, [callState.peer]);
-
-  useEffect(() => {
-    return () => {
-      endCall();
-    };
-  }, []);
+  }, [activeCall, navigate]);
 
   const handleSelectChat = async (chat: ChatType) => {
     setSelectedChat(null);
     try {
       const updatedChat = await chatApiHelper.getChatById(chat.id);
+      console.log(updatedChat.participants);
       setSelectedChat(updatedChat);
       resetInputState();
       
-      // Hide chat list on mobile when a chat is selected
       if (isMobile) {
         setShowChatList(false);
       }
@@ -159,6 +183,7 @@ const ChatPage: React.FC = () => {
       let newMessage: MessageType;
 
       if (mediaPreview) {
+       
         const upload = await chatApiHelper.uploadMedia(mediaPreview.file);
         newMessage = await chatApiHelper.sendMessage(selectedChat.id, {
           text: message || undefined,
@@ -193,86 +218,59 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const callUser = useCallback(async (isVideoCall: boolean = true) => {
-    if (!selectedChat) return;
-    try {
-      const constraints = isVideoCall ? { video: true, audio: true } : { video: false, audio: true };
-      const localStream = await getMediaStream(constraints);
-      setCallState(prev => ({ ...prev, stream: localStream }));
-      if (myVideoRef.current && isVideoCall) myVideoRef.current.srcObject = localStream;
+ const callUser = (isVideoCall: boolean = true) => {
+  
+      if (!selectedChat || !currentUser) return;
+      console.log(currentUser._id)
 
-      const peer = createPeer(
-        true,
-        localStream,
-        signalData => {
-          socket.emit('callUser', {
-            userToCall: selectedChat.id,
-            from: socket.id,
-            signalData,
-            type: isVideoCall ? 'video' : 'audio',
-          });
-        },
-        remoteStream => {
-          if (userVideoRef.current) userVideoRef.current.srcObject = remoteStream;
-        },
-        error => {
-          console.error('Peer error:', error);
-          endCall();
-        }
+      const otherParticipant = selectedChat.participants.find(
+        (p) => p._id !== currentUser._id
       );
+      if (!otherParticipant) return;
+      
 
-      setCallState(prev => ({ ...prev, peer, callAccepted: true }));
-    } catch (error) {
-      console.error('Failed to start call:', error);
-      alert('Failed to start call. Please check your camera and mic permissions.');
-    }
-  }, [selectedChat]);
+      const channelName = `call_${Date.now()}`;
+      const uid = Math.floor(Math.random() * 1000000);
 
-  const answerCall = useCallback(async () => {
-    if (!callState.incomingCall) return;
-    try {
-      const isVideoCall = callState.incomingCall.type === 'video';
-      const constraints = isVideoCall ? { video: true, audio: true } : { video: false, audio: true };
-      const localStream = await getMediaStream(constraints);
-      setCallState(prev => ({ ...prev, stream: localStream }));
-      if (myVideoRef.current && isVideoCall) myVideoRef.current.srcObject = localStream;
-
-      const peer = createPeer(
-        false,
-        localStream,
-        signalData => {
-          socket.emit('answerCall', {
-            to: callState.incomingCall!.from,
-            signal: signalData,
-          });
+      socket.emit('callUser', {
+        userToCall: otherParticipant._id,
+        from: socket.id,
+        type: isVideoCall ? 'video' : 'audio',
+        channelName,
+        callerInfo: {
+          name: currentUser.name,
+          avatar: currentUser.photo,
         },
-        remoteStream => {
-          if (userVideoRef.current) userVideoRef.current.srcObject = remoteStream;
-        },
-        error => {
-          console.error('Peer error:', error);
-          endCall();
-        }
+      });
+
+      navigate(`/video-call/${channelName}/${uid}`);
+    };
+
+
+  const answerCall = () => {
+    if (!incomingCall) return;
+    
+    const uid = Math.floor(Math.random() * 1000000);
+    navigate(`/video-call/${incomingCall.channelName}/${uid}`);
+    setIncomingCall(null);
+  };
+
+  const endCall = () => {
+      if (!activeCall || !selectedChat || !currentUser) return;
+
+      const otherParticipant = selectedChat.participants.find(
+        (p) => p._id !== currentUser._id
       );
+      if (otherParticipant) {
+        socket.emit('endCall', { to: otherParticipant._id });
+      }
+      navigate('/chat');
+    };
 
-      peer.signal(callState.incomingCall.signal);
-      setCallState(prev => ({ ...prev, peer, callAccepted: true, incomingCall: null }));
-    } catch (error) {
-      console.error('Failed to answer call:', error);
-      alert('Failed to answer call. Please check your camera and mic permissions.');
-    }
-  }, [callState.incomingCall]);
-
-  const endCall = useCallback(() => {
-    callState.peer?.destroy();
-    stopMediaStream(callState.stream);
-    setCallState({ peer: null, stream: null, incomingCall: null, callAccepted: false });
-    if (selectedChat) socket.emit('endCall', { to: selectedChat.id });
-  }, [callState.peer, callState.stream, selectedChat]);
-
-  const rejectCall = useCallback(() => {
-    setCallState(prev => ({ ...prev, incomingCall: null }));
-  }, []);
+  const rejectCall = () => {
+    setIncomingCall(null);
+    socket.emit('rejectCall', { to: incomingCall?.from });
+  };
 
   const handleEmojiClick = (emojiData: { emoji: string }) => {
     setMessage(prev => prev + emojiData.emoji);
@@ -298,6 +296,17 @@ const ChatPage: React.FC = () => {
   );
 
   const canSend = Boolean(selectedChat && !isUploading && (message.trim() || mediaPreview));
+
+  // If we're in an active call, show the VideoCallWrapper
+  if (activeCall) {
+    return (
+      <VideoCallWrapper 
+        channelName={activeCall.channelName} 
+        uid={activeCall.uid} 
+        onEnd={endCall}
+      />
+    );
+  }
 
   return (
     <div
@@ -347,7 +356,7 @@ const ChatPage: React.FC = () => {
       </div>
 
       {/* Chat Window */}
-      <div
+        <div
         className={`${
           isMobile
             ? showChatList
@@ -357,7 +366,7 @@ const ChatPage: React.FC = () => {
         } flex flex-col rounded-tl-xl shadow-md overflow-hidden transition-all duration-300 ease-in-out`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
+       <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
           <div className="flex items-center gap-3">
             {/* Back button for mobile */}
             {isMobile && (
@@ -396,35 +405,9 @@ const ChatPage: React.FC = () => {
           )}
         </div>
 
-        {/* Video Area */}
-        {callState.callAccepted && (
-          <div className="flex justify-center items-center gap-4 bg-black py-4">
-            <video 
-              ref={myVideoRef} 
-              autoPlay 
-              muted 
-              playsInline 
-              className="w-32 h-24 md:w-40 md:h-32 rounded border-2 border-gray-600" 
-            />
-            <video 
-              ref={userVideoRef} 
-              autoPlay 
-              playsInline 
-              className="w-32 h-24 md:w-40 md:h-32 rounded border-2 border-gray-600" 
-            />
-            <button 
-              onClick={endCall} 
-              className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 md:px-4 md:py-2 rounded transition-colors text-sm"
-            >
-              End Call
-            </button>
-          </div>
-        )}
-
-        {/* Incoming Call */}
-        {callState.incomingCall && !callState.callAccepted && (
+        {incomingCall && !activeCall && (
           <div className="p-4 text-center bg-yellow-100 border-b">
-            <p className="mb-3">📞 Incoming {callState.incomingCall.type} call...</p>
+            <p className="mb-3">📞 Incoming {incomingCall.type} call...</p>
             <div className="flex justify-center gap-3">
               <button 
                 onClick={answerCall} 
@@ -444,56 +427,60 @@ const ChatPage: React.FC = () => {
 
         {/* Messages */}
         <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-3">
-          {selectedChat?.messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`max-w-xs md:max-w-md px-3 py-2 md:px-4 md:py-2 rounded-lg ${
-                msg.sender === 'you'
-                  ? 'bg-[#CDE8FF] self-end ml-auto text-right'
-                  : 'bg-white self-start mr-auto'
-              } shadow-[0_4px_8px_rgba(0,0,0,0.1)]`}
+          {selectedChat?.messages.map((msg, idx) => {
+        const isSenderYou =
+      (typeof msg.sender === 'string' && msg.sender === 'you') 
+  return (
+    <div
+      key={idx}
+      className={`max-w-xs md:max-w-md px-3 py-2 md:px-4 md:py-2 rounded-lg ${
+        isSenderYou
+          ? 'bg-[#CDE8FF] self-end ml-auto text-right'
+          : 'bg-white self-start mr-auto'
+      } shadow-[0_4px_8px_rgba(0,0,0,0.1)]`}
+    >
+      {msg.text && <div className="mb-1 text-sm md:text-base">{msg.text}</div>}
+
+      {msg.mediaUrl && (
+        <div className="mt-2">
+          {msg.mediaType === 'image' && (
+            <img
+              src={msg.mediaUrl}
+              alt="Sent media"
+              className="max-w-full max-h-48 md:max-h-64 rounded shadow"
+            />
+          )}
+          {msg.mediaType === 'video' && (
+            <video
+              src={msg.mediaUrl}
+              controls
+              className="max-w-full rounded shadow"
+            />
+          )}
+          {msg.mediaType === 'audio' && (
+            <audio
+              controls
+              src={msg.mediaUrl}
+              className="w-full"
+            />
+          )}
+          {msg.mediaType === 'document' && (
+            <a
+              href={msg.mediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline text-sm"
             >
-              {msg.text && <div className="mb-1 text-sm md:text-base">{msg.text}</div>}
+              📄 View Document
+                  </a>
+                )}
+              </div>
+            )}
 
-              {msg.mediaUrl && (
-                <div className="mt-2">
-                  {msg.mediaType === 'image' && (
-                    <img
-                      src={msg.mediaUrl}
-                      alt="Sent media"
-                      className="max-w-full max-h-48 md:max-h-64 rounded shadow"
-                    />
-                  )}
-                  {msg.mediaType === 'video' && (
-                    <video
-                      src={msg.mediaUrl}
-                      controls
-                      className="max-w-full rounded shadow"
-                    />
-                  )}
-                  {msg.mediaType === 'audio' && (
-                    <audio
-                      controls
-                      src={msg.mediaUrl}
-                      className="w-full"
-                    />
-                  )}
-                  {msg.mediaType === 'document' && (
-                    <a
-                      href={msg.mediaUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline text-sm"
-                    >
-                      📄 View Document
-                    </a>
-                  )}
-                </div>
-              )}
-
-              <div className="text-xs text-gray-400 mt-1">{msg.timestamp}</div>
-            </div>
-          ))}
+            <div className="text-xs text-gray-400 mt-1">{msg.timestamp}</div>
+          </div>
+        );
+      })}
           <div ref={chatEndRef} />
         </div>
 

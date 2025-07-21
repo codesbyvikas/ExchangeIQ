@@ -10,6 +10,7 @@ import { useState } from "react";
 import InvitationPage from "./Pages/InvitationPage";
 import ChatPage from "./Pages/ChatPage";
 import DocsPage from "./Pages/DocumentationPage";
+import VideoCallWrapper from "./Components/VideoCallWrapper";
 
 const App = () => {
   const [learnSkillIds, setLearnSkillIds] = useState<string[]>([]);
@@ -25,6 +26,7 @@ const App = () => {
         <Route path="/invitations" element={<InvitationPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/doc" element={<DocsPage />} />
+        <Route path="/video-call/:channelName/:uid" element={<VideoCallWrapper />} />
         <Route
           path="/profile/skills/learn"
           element={

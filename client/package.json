@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.10",
+    "agora-rtc-sdk-ng": "^4.23.4",
     "axios": "^1.10.0",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",
