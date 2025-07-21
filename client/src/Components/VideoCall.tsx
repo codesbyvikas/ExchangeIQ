@@ -65,12 +65,11 @@ export default function VideoCall({ channelName, uid, onEnd }: Props) {
           }
         });
 
-        client.on("user-unpublished", (user, mediaType) => {
+        client.on("user-unpublished", (_user, mediaType) => {
           if (mediaType === "video" && remoteRef.current) {
             remoteRef.current.innerHTML = "";
           }
         });
-
         setJoined(true);
       } catch (err: any) {
         console.error("Join call error:", err);
