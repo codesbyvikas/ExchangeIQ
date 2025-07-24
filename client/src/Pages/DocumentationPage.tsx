@@ -1,171 +1,216 @@
-import React from "react";
-import Navbar from "../Components/Navbar";
 import Footer from "../Components/Footer";
+import Navbar from "../Components/Navbar";
 
-const DocsPage = () => {
+const DocumentationPage = () => {
   return (
-     <div className="flex flex-col min-h-dvh">
-    <div className="fixed top-0 left-0 w-full z-50 bg-white">
-      <Navbar />
-    </div>
-    
-    <div className="max-w-4xl mx-auto px-6 py-12 text-gray-800">
-        <Section title="📷 Preview">
-        <img
-          src="src\assets\logopng2.png"
-          alt="ExchangeIQ Banner"
-          className="mt-4 w-xl rounded shadow-md"
-        />
-      </Section>
-      <h1 className="text-4xl font-bold mb-6 text-blue-600">📘 ExchangeIQ Documentation</h1>
+    <div className="flex flex-col min-h-dvh">
+      {/* Sticky Navbar */}
+      <div className="fixed top-0 left-0 w-full z-50 bg-white shadow">
+        <Navbar />
+      </div>
 
-      <p className="mb-8 text-lg">
-        ExchangeIQ is a collaborative <strong>skill exchange platform</strong> where users can <strong>teach and learn</strong> from each other in real-time. It facilitates meaningful connections through skill-matching, chat, and video/audio calls.
-      </p>
-
-      <Section title="🧭 Table of Contents">
-        <ul className="list-disc list-inside space-y-1">
-          <li>Overview</li>
-          <li>Core Features</li>
-          <li>Technology Stack</li>
-          <li>Getting Started</li>
-          <li>Frontend Architecture</li>
-          <li>Backend Architecture</li>
-          <li>API Overview</li>
-          <li>Authentication Flow</li>
-          <li>WebSocket & WebRTC</li>
-          <li>Folder Structure</li>
-          <li>Contributing</li>
-          <li>License</li>
-        </ul>
-      </Section>
-
-      <Section title="🌟 Overview">
-        <p>
-          ExchangeIQ bridges the gap between people looking to learn a skill and those eager to teach. Users can exchange skills such as coding, painting, language learning, and more by sending and accepting invitations.
+      {/* Main Content */}
+      <div className="flex-1 mt-20 px-6 py-10 max-w-6xl mx-auto text-gray-800 space-y-10">
+        {/* Title */}
+        <h1 className="text-4xl font-bold text-center text-indigo-700">🔁 ExchangeIQ</h1>
+        <p className="text-lg text-center">
+          <strong>ExchangeIQ</strong> is a modern skill exchange platform that empowers individuals to{" "}
+          <strong>teach what they know</strong> and <strong>learn what they love</strong>. Whether it’s coding,
+          photography, music, or any life skill — ExchangeIQ connects you to people who complement your learning goals.
         </p>
-        <blockquote className="border-l-4 border-blue-300 pl-4 italic text-gray-600 mt-4">
-          Example: You want to learn <strong>guitar</strong> and can teach <strong>Python</strong>. ExchangeIQ helps you find a Python learner who can teach guitar.
-        </blockquote>
-      </Section>
 
-      <Section title="🚀 Core Features">
-        <ul className="list-disc list-inside space-y-1">
-          <li>🔐 Google OAuth-based authentication (JWT)</li>
-          <li>🎯 Skill selection (Teach & Learn)</li>
-          <li>🔁 Smart skill matching system</li>
-          <li>💬 Real-time chat with emoji/media support</li>
-          <li>📞 Audio & video call (WebRTC via <code>simple-peer</code>)</li>
-          <li>🧑‍🤝‍🧑 Invitation system to control chat access</li>
-          <li>📁 Cloudinary media uploads</li>
-        </ul>
-      </Section>
+        {/* Banner */}
+        <div className="flex justify-center">
+          <img
+            src="https://github.com/codesbyvikas/ExchangeIQ/blob/main/client/src/assets/logopng2.png?raw=true"
+            alt="ExchangeIQ Banner"
+            className="rounded-xl shadow-md max-w-full"
+          />
+        </div>
 
-      <Section title="🛠 Technology Stack">
-        <p className="font-semibold">Frontend:</p>
-        <ul className="list-disc list-inside ml-4 mb-4">
-          <li>React + TypeScript</li>
-          <li>Tailwind CSS</li>
-          <li>Socket.IO Client</li>
-          <li>Simple-Peer</li>
-          <li>React Router</li>
-        </ul>
+        {/* Features */}
+        <section>
+          <h2 className="text-2xl font-semibold mt-10 mb-4">🌟 Features</h2>
+          <ul className="list-disc list-inside space-y-2">
+            <li>🔐 Google OAuth 2.0 Authentication (JWT-based)</li>
+            <li>🧠 Create skill posts to <strong>teach</strong> or <strong>learn</strong></li>
+            <li>🤝 Smart matching with <strong>invitation system</strong></li>
+            <li>
+              💬 Real-time chat with:
+              <ul className="ml-6 list-disc">
+                <li>Emoji picker</li>
+                <li>Media sharing</li>
+                <li>Message timestamps</li>
+              </ul>
+            </li>
+            <li>📞 Audio & video calls using <strong>Agora SDK</strong> (with Socket.IO signaling)</li>
+            <li>🌐 Responsive UI — works great on mobile & desktop</li>
+            <li>📦 Built with the <strong>MERN stack</strong></li>
+          </ul>
+        </section>
 
-        <p className="font-semibold">Backend:</p>
-        <ul className="list-disc list-inside ml-4">
-          <li>Node.js + Express</li>
-          <li>MongoDB + Mongoose</li>
-          <li>JWT Authentication</li>
-          <li>Socket.IO</li>
-          <li>Cloudinary</li>
-        </ul>
-      </Section>
+        {/* Demo */}
+        <section>
+          <h2 className="text-2xl font-semibold mt-10 mb-2">🚀 Live Demo</h2>
+          <a
+            href="https://exchange-iq.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline"
+          >
+            👉 Visit ExchangeIQ
+          </a>
+        </section>
 
-      <Section title="🧰 Getting Started">
-        <p className="font-semibold mt-2">1. Clone the Repository</p>
-        <CodeBlock code={`git clone https://github.com/codesbyvikas/ExchangeIQ.git\ncd ExchangeIQ`} />
+        {/* Tech Stack */}
+        <section>
+          <h2 className="text-2xl font-semibold mt-10 mb-4">🧰 Tech Stack</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Frontend</h3>
+              <ul className="list-disc list-inside space-y-1">
+                <li>React + TypeScript</li>
+                <li>Tailwind CSS</li>
+                <li>React Router</li>
+                <li>Lucide Icons</li>
+                <li>Socket.IO Client</li>
+                <li>Agora SDK (Video/Audio Calls)</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Backend</h3>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Node.js + Express</li>
+                <li>MongoDB + Mongoose</li>
+                <li>JWT Authentication</li>
+                <li>Socket.IO Server</li>
+                <li>Cloudinary (media uploads)</li>
+                <li>Multer (file handling)</li>
+              </ul>
+            </div>
+          </div>
 
-        <p className="font-semibold mt-2">2. Setup Backend</p>
-        <CodeBlock code={`cd server\nnpm install\n# Add .env with secrets\nnpm run dev`} />
+          <div className="mt-4">
+            <h3 className="font-semibold text-lg mb-2">Dev & Tools</h3>
+            <ul className="list-disc list-inside space-y-1">
+              <li>VS Code</li>
+              <li>Vite</li>
+              <li>Postman / Thunder Client</li>
+              <li>ESLint + Prettier</li>
+              <li>Git + GitHub CI/CD</li>
+            </ul>
+          </div>
+        </section>
 
-        <p className="font-semibold mt-2">3. Setup Frontend</p>
-        <CodeBlock code={`cd client\nnpm install\nnpm run dev`} />
-      </Section>
+        {/* Screenshots */}
+        <section>
+          <h2 className="text-2xl font-semibold mt-10 mb-4">📸 Screenshots</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div>
+              <p className="font-medium text-center">Home</p>
+              <img
+                src="https://github.com/codesbyvikas/ExchangeIQ/blob/main/client/src/assets/homepage.png?raw=true"
+                alt="Home"
+                className="rounded-md shadow"
+              />
+            </div>
+            <div>
+              <p className="font-medium text-center">Skill Matching</p>
+              <img
+                src="https://github.com/codesbyvikas/ExchangeIQ/blob/main/client/src/assets/skillinvite.png?raw=true"
+                alt="Matching"
+                className="rounded-md shadow"
+              />
+            </div>
+            <div>
+              <p className="font-medium text-center">Chat</p>
+              <img
+                src="https://github.com/codesbyvikas/ExchangeIQ/blob/main/client/src/assets/chatpage.png?raw=true"
+                alt="Chat"
+                className="rounded-md shadow"
+              />
+            </div>
+          </div>
+        </section>
 
-      <Section title="🧩 Frontend Architecture">
-        <CodeBlock code={`src/\n├── components/\n├── pages/\n├── api/\n├── store/\n├── utils/\n└── types/`} />
-      </Section>
+        {/* Getting Started */}
+        <section>
+          <h2 className="text-2xl font-semibold mt-10 mb-4">🧑‍💻 Getting Started</h2>
 
-      <Section title="🧱 Backend Architecture">
-        <CodeBlock code={`backend/\n├── routes/\n├── models/\n├── controllers/\n├── socket/\n└── middleware/`} />
-      </Section>
+          <h3 className="font-semibold mb-2">Prerequisites</h3>
+          <ul className="list-disc list-inside">
+            <li>Node.js (v18+)</li>
+            <li>MongoDB</li>
+            <li>Cloudinary Account</li>
+            <li>Google OAuth Credentials</li>
+            <li>Agora App ID & App Certificate</li>
+          </ul>
 
-      <Section title="📡 API Overview">
-        <ul className="list-disc list-inside space-y-1">
-          <li><code>POST /auth/google</code> – Google login</li>
-          <li><code>GET /profile/me</code> – Get user profile</li>
-          <li><code>POST /posts/learn</code> – Create learn post</li>
-          <li><code>POST /invitations/send</code> – Send invitation</li>
-          <li><code>GET /messages/:user1/:user2</code> – Fetch chat</li>
-          <li><code>POST /messages/send</code> – Send message</li>
-        </ul>
-      </Section>
+          <h3 className="font-semibold mt-6 mb-2">Backend Setup</h3>
+          <pre className="bg-gray-100 p-4 rounded-md overflow-auto whitespace-pre">
+{`cd server
+npm install
+npm run dev`}
+          </pre>
 
-      <Section title="🔐 Authentication Flow">
-        <p>
-          Users authenticate via Google OAuth. The backend exchanges the Google code for user info and returns a JWT token.
-        </p>
-        <ul className="list-disc list-inside ml-4 mt-2">
-          <li>Frontend stores JWT in localStorage</li>
-          <li>Sends JWT in <code>Authorization</code> headers</li>
-        </ul>
-      </Section>
+          <h3 className="font-semibold mt-4 mb-2">Frontend Setup</h3>
+          <pre className="bg-gray-100 p-4 rounded-md overflow-auto whitespace-pre">
+{`cd client
+npm install
+npm run dev`}
+          </pre>
 
-      <Section title="🔌 WebSocket & WebRTC">
-        <p>
-          Real-time chat and call signaling are handled by <strong>Socket.IO</strong>. <code>simple-peer</code> is used to manage peer-to-peer WebRTC connections for audio/video calls.
-        </p>
-        <ul className="list-disc list-inside ml-4 mt-2">
-          <li>Handles: <code>signal</code>, <code>callUser</code>, <code>answerCall</code></li>
-          <li>Supports fallback to audio-only</li>
-        </ul>
-      </Section>
+          <h3 className="font-semibold mt-4 mb-2">.env — Server</h3>
+          <pre className="bg-gray-100 p-4 rounded-md overflow-auto whitespace-pre">
+{`MONGO_URI=your_mongo_uri
+JWT_SECRET=your_jwt_secret
 
-      <Section title="📁 Folder Structure">
-        <CodeBlock code={`ExchangeIQ/\n├── backend/\n├── frontend/\n│   └── src/\n├── README.md\n└── docs.md`} />
-      </Section>
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 
-      <Section title="🤝 Contributing">
-        <ol className="list-decimal list-inside ml-4 space-y-1">
-          <li>Fork the repo</li>
-          <li>Create a feature branch</li>
-          <li>Commit and push changes</li>
-          <li>Open a Pull Request</li>
-        </ol>
-      </Section>
+GOOGLE_CLIENT_ID=your_google_id
+GOOGLE_CLIENT_SECRET=your_google_secret
 
-      <Section title="Copyright">
-        <p>2025@<strong>ExchangeIQ</strong>.</p>
-      </Section>
+FRONTEND_BASE_URL=http://localhost:5173
 
-      
-    </div>
-    <Footer/>
+AGORA_APP_ID=your_agora_app_id
+AGORA_APP_CERTIFICATE=your_agora_app_certificate`}
+          </pre>
+
+          <h3 className="font-semibold mt-4 mb-2">.env — Client</h3>
+          <p className="text-sm text-gray-600 mb-2">
+            ⚠️ All frontend environment variables must start with <code>VITE_</code> (required by Vite).
+          </p>
+          <pre className="bg-gray-100 p-4 rounded-md overflow-auto whitespace-pre">
+{`VITE_BASE_API=http://localhost:5000
+VITE_AGORA_APP_ID=your_agora_app_id`}
+          </pre>
+        </section>
+
+        {/* Call Explanation */}
+        <section>
+          <h2 className="text-2xl font-semibold mt-10 mb-4">📞 How Video/Audio Calls Work</h2>
+          <ol className="list-decimal list-inside space-y-2">
+            <li>When a user initiates a call, the frontend requests a secure <strong>Agora token</strong> from the backend.</li>
+            <li>The frontend joins the Agora channel using that token via the <code>agora-rtc-sdk-ng</code> library.</li>
+            <li><strong>Socket.IO</strong> is used for real-time signaling and user presence.</li>
+            <li>Users can:
+              <ul className="ml-6 list-disc">
+                <li>Toggle audio/video</li>
+                <li>Enter full-screen mode</li>
+                <li>Leave the call anytime</li>
+              </ul>
+            </li>
+            <li>The entire call UI runs inside a <strong>modal overlay</strong> — no route change needed.</li>
+          </ol>
+        </section>
+      </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };
 
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className="mb-10">
-    <h2 className="text-2xl font-semibold text-gray-700 mb-3">{title}</h2>
-    <div>{children}</div>
-  </section>
-);
-
-const CodeBlock = ({ code }: { code: string }) => (
-  <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto my-2 whitespace-pre-wrap">
-    <code>{code}</code>
-  </pre>
-);
-
-export default DocsPage;
+export default DocumentationPage;

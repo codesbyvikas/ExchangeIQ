@@ -27,8 +27,18 @@ const Footer = () => {
             >
               Docs
             </a>
-            <a href="#" className="hover:text-blue-500 font-medium transition">Features</a>
-            <a href="#" className="hover:text-blue-500 font-medium transition">About</a>
+            <a href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/features')
+            }}
+             className="hover:text-blue-500 font-medium transition">Features</a>
+            <a href="#" 
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/about')
+            }}
+            className="hover:text-blue-500 font-medium transition">About</a>
           </div>
 
           {/* Contact Icons */}

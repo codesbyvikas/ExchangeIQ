@@ -7,6 +7,7 @@ import type { InvitationType } from '../utils/types/invitation';
 import invitationApiHelper from '../utils/api/invitationApiHelper';
 import profileApiHelper from '../utils/api/profileApiHelper';
 import Footer from '../Components/Footer';
+import {useNavigate} from 'react-router-dom';
 
 interface AlertProps {
   alert: { show: boolean; type: 'success' | 'error'; message: string };
@@ -23,7 +24,11 @@ const Alert = ({ alert, onClose }: AlertProps) => {
 
   if (!alert.show) return null;
 
+
+
   return (
+  
+
     <div className="fixed top-[130px] left-1/2 transform -translate-x-1/2 z-50 w-11/12 max-w-md">
       <div className={`p-4 text-sm rounded-lg shadow-lg border transition-all duration-300
         ${alert.type === 'success' 
@@ -46,6 +51,7 @@ const Alert = ({ alert, onClose }: AlertProps) => {
 };
 
 const InvitationPage = () => {
+  const navigate = useNavigate();
   const [learnInvitations, setLearnInvitations] = useState<InvitationType[]>([]);
   const [teachInvitations, setTeachInvitations] = useState<InvitationType[]>([]);
   const [exchangeInvitations, setExchangeInvitations] = useState<InvitationType[]>([]);
@@ -73,6 +79,7 @@ const InvitationPage = () => {
         setTeachInvitations(filtered.filter(inv => inv.reqType === 'learn' && inv.status=='pending'));
         setExchangeInvitations(filtered.filter(inv => inv.reqType === 'exchange' && inv.status=='pending'));
       } catch (err) {
+        navigate("/auth")
         setError('Failed to load invitations or user data.');
         console.error(err);
       } finally {

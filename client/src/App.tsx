@@ -11,6 +11,8 @@ import InvitationPage from "./Pages/InvitationPage";
 import ChatPage from "./Pages/ChatPage";
 import DocsPage from "./Pages/DocumentationPage";
 import VideoCallWrapper from "./Components/VideoCallWrapper";
+import FeaturesPage from "./Pages/FeaturesPage";
+import AboutPage from "./Pages/AboutPage";
 
 const App = () => {
   const [learnSkillIds, setLearnSkillIds] = useState<string[]>([]);
@@ -26,6 +28,8 @@ const App = () => {
         <Route path="/invitations" element={<InvitationPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/doc" element={<DocsPage />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="/video-call/:channelName/:uid" element={<VideoCallWrapper />} />
         <Route
           path="/profile/skills/learn"
