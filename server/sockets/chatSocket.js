@@ -8,17 +8,17 @@ module.exports = (io) => {
       socket.join(userId);
       userSockets.set(userId, socket.id);
       socket.userId = userId;
-      console.log(`✅ [setup] Socket ${socket.id} registered for user ${userId}`);
+      // console.log(`✅ [setup] Socket ${socket.id} registered for user ${userId}`);
     });
 
     socket.on("joinChat", (chatId) => {
       socket.join(`chat_${chatId}`);
-      console.log(`✅ Socket ${socket.id} joined chat room: chat_${chatId}`);
+      // console.log(`✅ Socket ${socket.id} joined chat room: chat_${chatId}`);
     });
 
     socket.on("leaveChat", (chatId) => {
       socket.leave(`chat_${chatId}`);
-      console.log(`✅ Socket ${socket.id} left chat room: chat_${chatId}`);
+      // console.log(`✅ Socket ${socket.id} left chat room: chat_${chatId}`);
     });
 
     socket.on("chatMessage", ({ roomId, message }) => {
@@ -28,7 +28,7 @@ module.exports = (io) => {
     // Agora call handlers
     socket.on("callUser", ({ userToCall, from, type, channelName, callerInfo }) => {
       const targetSocketId = userSockets.get(userToCall);
-      console.log(`📞 Trying to call ${userToCall}. Socket: ${targetSocketId}`);
+      // console.log(`📞 Trying to call ${userToCall}. Socket: ${targetSocketId}`);
 
       if (targetSocketId) {
         io.to(targetSocketId).emit("callIncoming", {
@@ -64,7 +64,7 @@ module.exports = (io) => {
     });
 
     socket.on("disconnect", () => {
-      console.log("❌ Socket disconnected:", socket.id);
+      // console.log("❌ Socket disconnected:", socket.id);
       if (socket.userId) {
         userSockets.delete(socket.userId);
         socket.broadcast.emit("userStatusUpdate", {
