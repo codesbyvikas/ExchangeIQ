@@ -15,8 +15,50 @@ import profileApiHelper from '../utils/api/profileApiHelper.tsx';
 import { getSocket } from '../utils/services/socket';
 import chatApiHelper from '../utils/api/chatApiHelper';
 import VideoCallWrapper from '../Components/VideoCallWrapper';
-import type { ChatType, MessageType } from '../utils/types/chat';
-import type { UserType } from '../utils/types/user';
+// Add type interfaces at the top
+interface MessageType {
+  id?: string;
+  sender: string; // This will be 'you' | 'them' | actual user ID
+  text?: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | 'audio' | 'document';
+  publicId?: string;
+  timestamp: string;
+  fullTimestamp?: string;
+  isRead: boolean;
+}
+
+interface ChatType {
+  id: string;
+  name: string;
+  photo?: string;
+  skill: string;
+  participants?: Array<{
+    _id: string;
+    name: string;
+    photo?: string;
+  }>;
+  messages: MessageType[];
+  lastMessage?: string;
+  chatType?: string;
+  skillInvolved?: {
+    name: string;
+  };
+  unreadCount?: number;
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalMessages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+interface UserType {
+  _id: string;
+  name: string;
+  photo?: string;
+}
 
 interface MediaPreview {
   file: File;
@@ -73,6 +115,17 @@ const ChatPage: React.FC = () => {
     Boolean(selectedChat && !isUploading && (message.trim() || mediaPreview)), 
     [selectedChat, isUploading, message, mediaPreview]);
 
+  // ✅ FIXED: Define resetInputState before it's used
+  const resetInputState = useCallback(() => {
+    setShowEmojiPicker(false);
+    setShowMediaOptions(false);
+    setMessage('');
+    if (mediaPreview) {
+      URL.revokeObjectURL(mediaPreview.url);
+      setMediaPreview(null);
+    }
+  }, [mediaPreview]);
+
   // Cleanup function for component unmount
   useEffect(() => {
     return () => {
@@ -127,13 +180,21 @@ const ChatPage: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Load chats
+  // ✅ FIXED: Load chats and join all chat rooms
   useEffect(() => {
     const loadChats = async () => {
       try {
         setIsLoading(true);
         const chats = await chatApiHelper.getChats();
         setChatList(chats || []);
+        
+        // Join all chat rooms when chats are loaded
+        if (socket && chats && chats.length > 0) {
+          chats.forEach(chat => {
+            socket.emit('joinChat', chat.id);
+            console.log(`🏠 Joined chat room: ${chat.id}`);
+          });
+        }
       } catch (error) {
         console.error('Failed to load chats:', error);
         setError("Failed to load chats. Please refresh the page.");
@@ -157,23 +218,40 @@ const ChatPage: React.FC = () => {
     }
   }, [currentUser]);
 
-  // ✅ NEW: Socket event handlers for real-time messages
+  // ✅ FIXED: Socket event handlers for real-time messages
   useEffect(() => {
-    const handleNewMessage = (data: { chatId: string; message: MessageType }) => {
+    // Define interface for socket message data (backend format)
+    interface SocketMessageData {
+      chatId: string;
+      message: Omit<MessageType, 'sender'> & {
+        sender: string; // This will be the actual user ID from backend
+      };
+    }
+
+    const handleNewMessage = (data: SocketMessageData) => {
       console.log('📨 Received new message:', data);
+      
+      // Convert sender ID to 'you'/'them' based on current user
+      const processedMessage: MessageType = {
+        ...data.message,
+        sender: data.message.sender === currentUser?._id ? 'you' : 'them'
+      };
       
       // Update the selected chat if it matches
       if (selectedChat && selectedChat.id === data.chatId) {
-        setSelectedChat(prev => prev ? {
-          ...prev,
-          messages: [...prev.messages, data.message]
-        } : prev);
+        setSelectedChat(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            messages: [...prev.messages, processedMessage]
+          };
+        });
       }
       
       // Update the chat list
       setChatList(prev => prev.map(chat => 
         chat.id === data.chatId 
-          ? { ...chat, messages: [...(chat.messages || []), data.message] }
+          ? { ...chat, messages: [...(chat.messages || []), processedMessage] }
           : chat
       ));
     };
@@ -189,7 +267,24 @@ const ChatPage: React.FC = () => {
       }
     };
 
-    if (socket) {
+    // ✅ FIXED: Add connection handlers
+    const handleConnect = () => {
+      console.log('✅ Socket connected');
+      setError(null);
+      // Rejoin all chat rooms on reconnection
+      chatList.forEach(chat => {
+        socket.emit('joinChat', chat.id);
+      });
+    };
+
+    const handleDisconnect = () => {
+      console.log('❌ Socket disconnected');
+      setError('Connection lost. Trying to reconnect...');
+    };
+
+    if (socket && currentUser) {
+      socket.on('connect', handleConnect);
+      socket.on('disconnect', handleDisconnect);
       socket.on('newMessage', handleNewMessage);
       socket.on('callIncoming', handleIncomingCall);
       socket.on('callEnded', handleCallEnded);
@@ -197,37 +292,14 @@ const ChatPage: React.FC = () => {
 
     return () => {
       if (socket) {
+        socket.off('connect', handleConnect);
+        socket.off('disconnect', handleDisconnect);
         socket.off('newMessage', handleNewMessage);
         socket.off('callIncoming', handleIncomingCall);
         socket.off('callEnded', handleCallEnded);
       }
     };
-  }, [selectedChat, activeCall, navigate]);
-
-  // ✅ NEW: Join/leave chat rooms when selecting chats
-  useEffect(() => {
-    if (selectedChat && socket) {
-      // Join the current chat room
-      socket.emit('joinChat', selectedChat.id);
-      console.log(`✅ Joined chat room: ${selectedChat.id}`);
-      
-      // Cleanup: leave the chat room when changing chats
-      return () => {
-        socket.emit('leaveChat', selectedChat.id);
-        console.log(`✅ Left chat room: ${selectedChat.id}`);
-      };
-    }
-  }, [selectedChat?.id]);
-
-  const resetInputState = useCallback(() => {
-    setShowEmojiPicker(false);
-    setShowMediaOptions(false);
-    setMessage('');
-    if (mediaPreview) {
-      URL.revokeObjectURL(mediaPreview.url);
-      setMediaPreview(null);
-    }
-  }, [mediaPreview]);
+  }, [selectedChat, activeCall, navigate, currentUser, chatList]);
 
   const handleSelectChat = useCallback(async (chat: ChatType) => {
     setSelectedChat(null);
@@ -236,17 +308,8 @@ const ChatPage: React.FC = () => {
     try {
       const updatedChat = await chatApiHelper.getChatById(chat.id);
 
-      const mappedMessages: MessageType[] = updatedChat.messages.map((msg) => {
-        return {
-          ...msg,
-          sender: msg.sender
-        };
-      });
-
-      setSelectedChat({
-        ...updatedChat,
-        messages: mappedMessages,
-      });
+      // The API should return messages in the correct format already
+      setSelectedChat(updatedChat);
 
       resetInputState();
 
@@ -266,6 +329,7 @@ const ChatPage: React.FC = () => {
     setError(null);
   }, [resetInputState]);
 
+  // ✅ FIXED: handleSend with proper resetInputState usage
   const handleSend = useCallback(async () => {
     if (!selectedChat || (!message.trim() && !mediaPreview) || isUploading) return;
 
@@ -289,19 +353,9 @@ const ChatPage: React.FC = () => {
         });
       }
 
-      // ✅ UPDATE: Only add to local state, real-time updates will come via socket
-      setSelectedChat(prev =>
-        prev ? { ...prev, messages: [...prev.messages, newMessage] } : prev
-      );
-
-      setChatList(prev =>
-        prev.map(chat =>
-          chat.id === selectedChat.id
-            ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-            : chat
-        )
-      );
-
+      // Don't add to local state immediately - let socket handle it
+      // This prevents duplicate messages and ensures consistency
+      
       resetInputState();
     } catch (error) {
       console.error('Failed to send message:', error);
