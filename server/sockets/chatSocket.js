@@ -10,26 +10,40 @@ module.exports = (io) => {
       socket.userId = userId;
       console.log(`✅ [setup] Socket ${socket.id} registered for user ${userId}`);
     });
+
+    // ✅ ADD THIS: Handle joining specific chat rooms
+    socket.on("joinChat", (chatId) => {
+      socket.join(`chat_${chatId}`);
+      console.log(`✅ Socket ${socket.id} joined chat room: chat_${chatId}`);
+    });
+
+    // ✅ ADD THIS: Handle leaving specific chat rooms
+    socket.on("leaveChat", (chatId) => {
+      socket.leave(`chat_${chatId}`);
+      console.log(`✅ Socket ${socket.id} left chat room: chat_${chatId}`);
+    });
+
     socket.on("chatMessage", ({ roomId, message }) => {
       io.to(roomId).emit("chatMessage", { message, from: socket.id });
     });
 
-    // Agora call
+    // Agora call handlers
     socket.on("callUser", ({ userToCall, from, type, channelName, callerInfo }) => {
-  const targetSocketId = userSockets.get(userToCall);
-  console.log(`📞 Trying to call ${userToCall}. Socket: ${targetSocketId}`);
+      const targetSocketId = userSockets.get(userToCall);
+      console.log(`📞 Trying to call ${userToCall}. Socket: ${targetSocketId}`);
 
-  if (targetSocketId) {
-    io.to(targetSocketId).emit("callIncoming", {
-      from,
-      type: type || "video",
-      channelName,
-      callerInfo,
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("callIncoming", {
+          from,
+          type: type || "video",
+          channelName,
+          callerInfo,
+        });
+      } else {
+        socket.emit("callFailed", { reason: "User is offline" });
+      }
     });
-  } else {
-    socket.emit("callFailed", { reason: "User is offline" });
-  }
-});
+
     socket.on("answerCall", ({ to }) => {
       const targetSocketId = userSockets.get(to);
       if (targetSocketId) {

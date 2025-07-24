@@ -70,21 +70,6 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Health check
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
-});
-
-// Routes
-app.use("/auth", require("./routes/auth"));
-app.use("/profile", require("./routes/profile"));
-app.use("/skill", require("./routes/skill"));
-app.use("/post", require("./routes/post"));
-app.use("/invitation", require("./routes/invitation"));
-app.use("/chat", require("./routes/chat"));
-app.use("/media", require("./routes/chatMedia"));
-app.use('/agora', agoraTokenRoute);
-
 // Socket.IO with JWT authentication
 const io = new Server(server, {
   cors: {
@@ -114,7 +99,25 @@ io.use((socket, next) => {
   }
 });
 
+app.set('io', io);
+
+// Initialize socket handlers
 require("./sockets/chatSocket")(io);
+
+// Health check
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
+// Routes
+app.use("/auth", require("./routes/auth"));
+app.use("/profile", require("./routes/profile"));
+app.use("/skill", require("./routes/skill"));
+app.use("/post", require("./routes/post"));
+app.use("/invitation", require("./routes/invitation"));
+app.use("/chat", require("./routes/chat"));
+app.use("/media", require("./routes/chatMedia"));
+app.use('/agora', agoraTokenRoute);
 
 // 404 handler
 app.use("*", (req, res) => {
