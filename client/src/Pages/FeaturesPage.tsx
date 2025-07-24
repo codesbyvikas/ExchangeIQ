@@ -4,12 +4,10 @@ import Footer from "../Components/Footer";
 const FeaturesPage = () => {
   return (
     <div className="flex flex-col min-h-dvh">
-      {/* Sticky Navbar */}
       <div className="fixed top-0 left-0 w-full z-50 bg-white shadow">
         <Navbar />
       </div>
 
-      {/* Content */}
       <div className="flex-1 mt-20 px-6 py-10 max-w-5xl mx-auto space-y-6 text-gray-800">
         <h1 className="text-4xl font-bold text-indigo-700 text-center">🌟 Features</h1>
         <ul className="list-disc list-inside text-lg space-y-3">
@@ -33,7 +31,6 @@ const FeaturesPage = () => {
         </ul>
       </div>
 
-      {/* Footer */}
       <Footer />
     </div>
   );
