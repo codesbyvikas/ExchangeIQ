@@ -347,6 +347,7 @@ const ChatPage: React.FC = () => {
           mediaType: upload.mediaType,
           publicId: upload.publicId,
         });
+        console.log(newMessage);
       } else {
         newMessage = await chatApiHelper.sendMessage(selectedChat.id, {
           text: message.trim(),
