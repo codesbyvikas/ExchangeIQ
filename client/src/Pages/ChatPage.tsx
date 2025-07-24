@@ -248,7 +248,6 @@ const ChatPage: React.FC = () => {
         });
       }
       
-      // Update the chat list
       setChatList(prev => prev.map(chat => 
         chat.id === data.chatId 
           ? { ...chat, messages: [...(chat.messages || []), processedMessage] }
