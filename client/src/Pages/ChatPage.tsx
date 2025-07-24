@@ -87,7 +87,6 @@ const ChatPage: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-      
         setIsLoading(true);
         const profileRes = await profileApiHelper.getSelfProfile();
         setCurrentUser(profileRes);
@@ -158,8 +157,27 @@ const ChatPage: React.FC = () => {
     }
   }, [currentUser]);
 
-  // Socket event handlers
+  // ✅ NEW: Socket event handlers for real-time messages
   useEffect(() => {
+    const handleNewMessage = (data: { chatId: string; message: MessageType }) => {
+      console.log('📨 Received new message:', data);
+      
+      // Update the selected chat if it matches
+      if (selectedChat && selectedChat.id === data.chatId) {
+        setSelectedChat(prev => prev ? {
+          ...prev,
+          messages: [...prev.messages, data.message]
+        } : prev);
+      }
+      
+      // Update the chat list
+      setChatList(prev => prev.map(chat => 
+        chat.id === data.chatId 
+          ? { ...chat, messages: [...(chat.messages || []), data.message] }
+          : chat
+      ));
+    };
+
     const handleIncomingCall = (data: IncomingCall) => {
       setIncomingCall(data);
     };
@@ -171,14 +189,35 @@ const ChatPage: React.FC = () => {
       }
     };
 
-    socket.on('callIncoming', handleIncomingCall);
-    socket.on('callEnded', handleCallEnded);
+    if (socket) {
+      socket.on('newMessage', handleNewMessage);
+      socket.on('callIncoming', handleIncomingCall);
+      socket.on('callEnded', handleCallEnded);
+    }
 
     return () => {
-      socket.off('callIncoming', handleIncomingCall);
-      socket.off('callEnded', handleCallEnded);
+      if (socket) {
+        socket.off('newMessage', handleNewMessage);
+        socket.off('callIncoming', handleIncomingCall);
+        socket.off('callEnded', handleCallEnded);
+      }
     };
-  }, [activeCall, navigate]);
+  }, [selectedChat, activeCall, navigate]);
+
+  // ✅ NEW: Join/leave chat rooms when selecting chats
+  useEffect(() => {
+    if (selectedChat && socket) {
+      // Join the current chat room
+      socket.emit('joinChat', selectedChat.id);
+      console.log(`✅ Joined chat room: ${selectedChat.id}`);
+      
+      // Cleanup: leave the chat room when changing chats
+      return () => {
+        socket.emit('leaveChat', selectedChat.id);
+        console.log(`✅ Left chat room: ${selectedChat.id}`);
+      };
+    }
+  }, [selectedChat?.id]);
 
   const resetInputState = useCallback(() => {
     setShowEmojiPicker(false);
@@ -191,37 +230,34 @@ const ChatPage: React.FC = () => {
   }, [mediaPreview]);
 
   const handleSelectChat = useCallback(async (chat: ChatType) => {
-  setSelectedChat(null);
-  setError(null);
-  
-  try {
-    const updatedChat = await chatApiHelper.getChatById(chat.id);
+    setSelectedChat(null);
+    setError(null);
+    
+    try {
+      const updatedChat = await chatApiHelper.getChatById(chat.id);
 
-    const mappedMessages: MessageType[] = updatedChat.messages.map((msg) => {
-      return {
-        ...msg,
-        sender: msg.sender
-      };
-    });
+      const mappedMessages: MessageType[] = updatedChat.messages.map((msg) => {
+        return {
+          ...msg,
+          sender: msg.sender
+        };
+      });
 
-    setSelectedChat({
-      ...updatedChat,
-      messages: mappedMessages,
-    });
+      setSelectedChat({
+        ...updatedChat,
+        messages: mappedMessages,
+      });
 
-    resetInputState();
+      resetInputState();
 
-    if (isMobile) {
-      setShowChatList(false);
+      if (isMobile) {
+        setShowChatList(false);
+      }
+    } catch (error) {
+      console.error('Failed to load chat:', error);
+      setError("Failed to load chat messages.");
     }
-  } catch (error) {
-    console.error('Failed to load chat:', error);
-    setError("Failed to load chat messages.");
-  }
-}, [currentUser, isMobile, resetInputState]);
-
-// In your message rendering JSX, change this line:
-
+  }, [currentUser, isMobile, resetInputState]);
 
   const handleBackToChats = useCallback(() => {
     setSelectedChat(null);
@@ -253,6 +289,7 @@ const ChatPage: React.FC = () => {
         });
       }
 
+      // ✅ UPDATE: Only add to local state, real-time updates will come via socket
       setSelectedChat(prev =>
         prev ? { ...prev, messages: [...prev.messages, newMessage] } : prev
       );
@@ -277,7 +314,7 @@ const ChatPage: React.FC = () => {
   const callUser = useCallback((isVideoCall: boolean = true) => {
     if (!selectedChat || !currentUser) return;
 
-    const otherParticipant = selectedChat.participants.find(
+    const otherParticipant = selectedChat.participants?.find(
       (p) => p._id !== currentUser._id
     );
     if (!otherParticipant) return;
@@ -310,7 +347,7 @@ const ChatPage: React.FC = () => {
   const endCall = useCallback(() => {
     if (!activeCall || !selectedChat || !currentUser) return;
 
-    const otherParticipant = selectedChat.participants.find(
+    const otherParticipant = selectedChat.participants?.find(
       (p) => p._id !== currentUser._id
     );
     if (otherParticipant) {
@@ -535,65 +572,62 @@ const ChatPage: React.FC = () => {
               No messages yet. Start a conversation!
             </div>
           ) : (
-                      selectedChat.messages.map((msg, idx) => {
-            const isSenderYou = msg.sender === 'you';
-            
-            return (
-              <div
-                key={`${msg.id || idx}`}
-                className={`max-w-xs md:max-w-md px-3 py-2 md:px-4 md:py-2 rounded-lg ${
-                  isSenderYou
-                    ? 'bg-[#CDE8FF] self-end ml-auto text-right'
-                    : 'bg-white self-start mr-auto'
-                } shadow-[0_4px_8px_rgba(0,0,0,0.1)]`}
-              >
-                {msg.text && <div className="mb-1 text-sm md:text-base">{msg.text}</div>}
+            selectedChat.messages.map((msg, idx) => {
+              const isSenderYou = msg.sender === 'you';
+              
+              return (
+                <div
+                  key={`${msg.id || idx}`}
+                  className={`max-w-xs md:max-w-md px-3 py-2 md:px-4 md:py-2 rounded-lg ${
+                    isSenderYou
+                      ? 'bg-[#CDE8FF] self-end ml-auto text-right'
+                      : 'bg-white self-start mr-auto'
+                  } shadow-[0_4px_8px_rgba(0,0,0,0.1)]`}
+                >
+                  {msg.text && <div className="mb-1 text-sm md:text-base">{msg.text}</div>}
 
-                {msg.mediaUrl && (
-                  <div className="mt-2">
-                    {msg.mediaType === 'image' && (
-                      <img
-                        src={msg.mediaUrl}
-                        alt="Sent media"
-                        className="max-w-full max-h-48 md:max-h-64 rounded shadow"
-                        loading="lazy"
-                      />
-                    )}
-                    {msg.mediaType === 'video' && (
-                      <video
-                        src={msg.mediaUrl}
-                        controls
-                        className="max-w-full rounded shadow"
-                        preload="metadata"
-                      />
-                    )}
-                    {msg.mediaType === 'audio' && (
-                      <audio
-                        controls
-                        src={msg.mediaUrl}
-                        className="w-full"
-                        preload="metadata"
-                      />
-                    )}
-                    {msg.mediaType === 'document' && (
-                      <a
-                        href={msg.mediaUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline text-sm hover:text-blue-800"
-                      >
-                        📄 View Document
-                      </a>
-                    )}
-                  </div>
-                )}
-                <div className="text-xs text-gray-400 mt-1">{msg.timestamp}</div>
-              </div>
-            );
-          })
-                          
-                    
-                  
+                  {msg.mediaUrl && (
+                    <div className="mt-2">
+                      {msg.mediaType === 'image' && (
+                        <img
+                          src={msg.mediaUrl}
+                          alt="Sent media"
+                          className="max-w-full max-h-48 md:max-h-64 rounded shadow"
+                          loading="lazy"
+                        />
+                      )}
+                      {msg.mediaType === 'video' && (
+                        <video
+                          src={msg.mediaUrl}
+                          controls
+                          className="max-w-full rounded shadow"
+                          preload="metadata"
+                        />
+                      )}
+                      {msg.mediaType === 'audio' && (
+                        <audio
+                          controls
+                          src={msg.mediaUrl}
+                          className="w-full"
+                          preload="metadata"
+                        />
+                      )}
+                      {msg.mediaType === 'document' && (
+                        <a
+                          href={msg.mediaUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline text-sm hover:text-blue-800"
+                        >
+                          📄 View Document
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-400 mt-1">{msg.timestamp}</div>
+                </div>
+              );
+            })
           )}
           <div ref={chatEndRef} />
         </div>
