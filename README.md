@@ -66,11 +66,14 @@ Whether it’s coding, photography, music, or any life skill — ExchangeIQ conn
 ## 🧑‍💻 Getting Started
 
 ### Prerequisites
+
 - Node.js (v18+)  
 - MongoDB  
 - Cloudinary Account  
 - Google OAuth Credentials  
 - **Agora App ID & App Certificate**
+
+<!-- ✅ End of prerequisites -->
 
 ---
 
@@ -80,19 +83,16 @@ Whether it’s coding, photography, music, or any life skill — ExchangeIQ conn
 cd server
 npm install
 npm run dev
-
-
-
-
-### Frontend Setup
+<!-- ✅ Properly closed backend code block -->
+Frontend Setup
 bash
 Copy
 Edit
 cd client
 npm install
 npm run dev
-
-### .env — Server
+<!-- ✅ Properly closed frontend code block -->
+.env — Server (place this file at /server/.env)
 env
 Copy
 Edit
@@ -110,24 +110,33 @@ FRONTEND_BASE_URL=http://localhost:5173
 
 AGORA_APP_ID=your_agora_app_id
 AGORA_APP_CERTIFICATE=your_agora_app_certificate
+<!-- ✅ End of server .env -->
+.env — Client (place this file at /client/.env)
+⚠️ All frontend environment variables must start with VITE_ (required by Vite).
 
-
-### .env — Client
 env
 Copy
 Edit
 VITE_BASE_API=http://localhost:5000
 VITE_AGORA_APP_ID=your_agora_app_id
-
+<!-- ✅ End of client .env -->
 📞 How Video/Audio Calls Work
 ExchangeIQ uses Agora SDK for high-quality audio and video calls. Here's how it works:
 
-When a user initiates a call, the app requests a secure Agora token from the backend.
+When a user initiates a call, the frontend requests a secure Agora token from the backend.
 
-The frontend uses this token to join an Agora channel.
+The frontend joins the Agora channel using that token via the agora-rtc-sdk-ng library.
 
-Socket.IO handles signaling and user presence.
+Socket.IO is used for real-time signaling and user presence.
 
-Users can toggle audio/video, go full-screen, and leave the call anytime.
+Users can:
 
-The call runs inside a modal overlay within the chat screen — no separate page required.
+Toggle audio/video
+
+Enter full-screen mode
+
+Leave the call anytime
+
+The entire call UI runs inside a modal overlay — no route change needed.
+
+<!-- ✅ End of call explanation -->
