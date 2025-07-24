@@ -337,6 +337,7 @@ const ChatPage: React.FC = () => {
 
     try {
       let newMessage: MessageType;
+    
 
       if (mediaPreview) {
         const upload = await chatApiHelper.uploadMedia(mediaPreview.file);
@@ -352,8 +353,7 @@ const ChatPage: React.FC = () => {
         });
       }
 
-      // Don't add to local state immediately - let socket handle it
-      // This prevents duplicate messages and ensures consistency
+
       
       resetInputState();
     } catch (error) {
