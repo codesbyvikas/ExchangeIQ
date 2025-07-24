@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import {
   FaVideo,
@@ -16,7 +16,7 @@ import { getSocket } from '../utils/services/socket';
 import chatApiHelper from '../utils/api/chatApiHelper';
 import VideoCallWrapper from '../Components/VideoCallWrapper';
 import type { ChatType, MessageType } from '../utils/types/chat';
-import type{ UserType } from '../utils/types/user';
+import type { UserType } from '../utils/types/user';
 
 interface MediaPreview {
   file: File;
@@ -24,9 +24,25 @@ interface MediaPreview {
   type: 'image' | 'video' | 'audio' | 'document';
 }
 
+interface IncomingCall {
+  from: string;
+  type: 'video' | 'audio';
+  channelName: string;
+  callerInfo: {
+    name: string;
+    avatar: string;
+  };
+}
+
+interface ActiveCall {
+  channelName: string;
+  uid: number;
+}
+
 const socket = getSocket();
 
 const ChatPage: React.FC = () => {
+  // State management
   const [chatList, setChatList] = useState<ChatType[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatType | null>(null);
   const [message, setMessage] = useState<string>('');
@@ -38,53 +54,67 @@ const ChatPage: React.FC = () => {
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
   const [currentUser, setCurrentUser] = useState<UserType>();
   const [showChatList, setShowChatList] = useState<boolean>(true);
-  const [incomingCall, setIncomingCall] = useState<{
-    from: string;
-    type: 'video' | 'audio';
-    channelName: string;
-    callerInfo: any;
-  } | null>(null);
-  const [activeCall, setActiveCall] = useState<{
-    channelName: string;
-    uid: number;
-  } | null>(null);
+  const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
+  const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const params = useParams();
 
-  // Check if we're in a call from URL params
+  // Memoized values
+  const filteredChats = useMemo(() => 
+    chatList.filter(chat =>
+      chat.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [chatList, searchTerm]);
 
+  const canSend = useMemo(() => 
+    Boolean(selectedChat && !isUploading && (message.trim() || mediaPreview)), 
+    [selectedChat, isUploading, message, mediaPreview]);
+
+  // Cleanup function for component unmount
   useEffect(() => {
-      return () => {
-        socket.disconnect();
-      };
-    }, []);
-    
-     useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      const profileRes = await profileApiHelper.getSelfProfile();
-      setCurrentUser(profileRes);
-    } catch (err) {
-      console.error("Failed to fetch profile:", err);
-    }
-  };
+    return () => {
+      if (mediaPreview) {
+        URL.revokeObjectURL(mediaPreview.url);
+      }
+      socket.disconnect();
+    };
+  }, [mediaPreview]);
 
-  fetchProfile();
-}, []);
+  // Fetch user profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+      
+        setIsLoading(true);
+        const profileRes = await profileApiHelper.getSelfProfile();
+        setCurrentUser(profileRes);
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+        setError("Failed to load profile. Please refresh the page.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
+    fetchProfile();
+  }, []);
+
+  // Handle URL params for active calls
   useEffect(() => {
     if (params.channelName && params.uid) {
       setActiveCall({
         channelName: params.channelName,
-        uid: parseInt(params.uid)
+        uid: parseInt(params.uid, 10)
       });
     } else {
       setActiveCall(null);
     }
   }, [params]);
 
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
@@ -93,40 +123,44 @@ const ChatPage: React.FC = () => {
         setShowChatList(true);
       }
     };
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Load chats
   useEffect(() => {
     const loadChats = async () => {
       try {
+        setIsLoading(true);
         const chats = await chatApiHelper.getChats();
-        
         setChatList(chats || []);
       } catch (error) {
         console.error('Failed to load chats:', error);
+        setError("Failed to load chats. Please refresh the page.");
+      } finally {
+        setIsLoading(false);
       }
     };
+
     loadChats();
   }, []);
 
+  // Auto-scroll to bottom of chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedChat?.messages]);
 
-  useEffect(() => {
-  if (currentUser && socket) {
-    socket.emit('setup', currentUser._id);
-  }
-}, [currentUser]);
+  // Socket setup
+  useEffect(() => { 
+    if (currentUser && socket) {
+      socket.emit('setup', currentUser._id);
+    }
+  }, [currentUser]);
 
+  // Socket event handlers
   useEffect(() => {
-    const handleIncomingCall = (data: {
-      from: string;
-      type: 'video' | 'audio';
-      channelName: string;
-      callerInfo: any;
-    }) => {
+    const handleIncomingCall = (data: IncomingCall) => {
       setIncomingCall(data);
     };
 
@@ -146,44 +180,66 @@ const ChatPage: React.FC = () => {
     };
   }, [activeCall, navigate]);
 
-  const handleSelectChat = async (chat: ChatType) => {
-    setSelectedChat(null);
-    try {
-      const updatedChat = await chatApiHelper.getChatById(chat.id);
-      console.log(updatedChat.participants);
-      setSelectedChat(updatedChat);
-      resetInputState();
-      
-      if (isMobile) {
-        setShowChatList(false);
-      }
-    } catch (error) {
-      console.error('Failed to load chat:', error);
-    }
-  };
-
-  const handleBackToChats = () => {
-    setSelectedChat(null);
-    setShowChatList(true);
-    resetInputState();
-  };
-
-  const resetInputState = () => {
+  const resetInputState = useCallback(() => {
     setShowEmojiPicker(false);
     setShowMediaOptions(false);
     setMessage('');
-    setMediaPreview(null);
-  };
+    if (mediaPreview) {
+      URL.revokeObjectURL(mediaPreview.url);
+      setMediaPreview(null);
+    }
+  }, [mediaPreview]);
 
-  const handleSend = async () => {
-    if (!selectedChat || (!message.trim() && !mediaPreview)) return;
+  const handleSelectChat = useCallback(async (chat: ChatType) => {
+  setSelectedChat(null);
+  setError(null);
+  
+  try {
+    const updatedChat = await chatApiHelper.getChatById(chat.id);
+
+    const mappedMessages: MessageType[] = updatedChat.messages.map((msg) => {
+      return {
+        ...msg,
+        sender: msg.sender
+      };
+    });
+
+    setSelectedChat({
+      ...updatedChat,
+      messages: mappedMessages,
+    });
+
+    resetInputState();
+
+    if (isMobile) {
+      setShowChatList(false);
+    }
+  } catch (error) {
+    console.error('Failed to load chat:', error);
+    setError("Failed to load chat messages.");
+  }
+}, [currentUser, isMobile, resetInputState]);
+
+// In your message rendering JSX, change this line:
+
+
+  const handleBackToChats = useCallback(() => {
+    setSelectedChat(null);
+    setShowChatList(true);
+    resetInputState();
+    setError(null);
+  }, [resetInputState]);
+
+  const handleSend = useCallback(async () => {
+    if (!selectedChat || (!message.trim() && !mediaPreview) || isUploading) return;
 
     setIsUploading(true);
+    setError(null);
+
     try {
       let newMessage: MessageType;
 
       if (mediaPreview) {
-       
         const upload = await chatApiHelper.uploadMedia(mediaPreview.file);
         newMessage = await chatApiHelper.sendMessage(selectedChat.id, {
           text: message || undefined,
@@ -212,90 +268,98 @@ const ChatPage: React.FC = () => {
       resetInputState();
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert('Failed to send message.');
+      setError('Failed to send message. Please try again.');
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [selectedChat, message, mediaPreview, isUploading, resetInputState]);
 
- const callUser = (isVideoCall: boolean = true) => {
-  
-      if (!selectedChat || !currentUser) return;
-      console.log(currentUser._id)
+  const callUser = useCallback((isVideoCall: boolean = true) => {
+    if (!selectedChat || !currentUser) return;
 
-      const otherParticipant = selectedChat.participants.find(
-        (p) => p._id !== currentUser._id
-      );
-      if (!otherParticipant) return;
-      
+    const otherParticipant = selectedChat.participants.find(
+      (p) => p._id !== currentUser._id
+    );
+    if (!otherParticipant) return;
 
-      const channelName = `call_${Date.now()}`;
-      const uid = Math.floor(Math.random() * 1000000);
+    const channelName = `call_${Date.now()}`;
+    const uid = Math.floor(Math.random() * 1000000);
 
-      socket.emit('callUser', {
-        userToCall: otherParticipant._id,
-        from: socket.id,
-        type: isVideoCall ? 'video' : 'audio',
-        channelName,
-        callerInfo: {
-          name: currentUser.name,
-          avatar: currentUser.photo,
-        },
-      });
+    socket.emit('callUser', {
+      userToCall: otherParticipant._id,
+      from: socket.id,
+      type: isVideoCall ? 'video' : 'audio',
+      channelName,
+      callerInfo: {
+        name: currentUser.name,
+        avatar: currentUser.photo,
+      },
+    });
 
-      navigate(`/video-call/${channelName}/${uid}`);
-    };
+    navigate(`/video-call/${channelName}/${uid}`);
+  }, [selectedChat, currentUser, navigate]);
 
-
-  const answerCall = () => {
+  const answerCall = useCallback(() => {
     if (!incomingCall) return;
     
     const uid = Math.floor(Math.random() * 1000000);
     navigate(`/video-call/${incomingCall.channelName}/${uid}`);
     setIncomingCall(null);
-  };
+  }, [incomingCall, navigate]);
 
-  const endCall = () => {
-      if (!activeCall || !selectedChat || !currentUser) return;
+  const endCall = useCallback(() => {
+    if (!activeCall || !selectedChat || !currentUser) return;
 
-      const otherParticipant = selectedChat.participants.find(
-        (p) => p._id !== currentUser._id
-      );
-      if (otherParticipant) {
-        socket.emit('endCall', { to: otherParticipant._id });
-      }
-      navigate('/chat');
-    };
+    const otherParticipant = selectedChat.participants.find(
+      (p) => p._id !== currentUser._id
+    );
+    if (otherParticipant) {
+      socket.emit('endCall', { to: otherParticipant._id });
+    }
+    navigate('/chat');
+  }, [activeCall, selectedChat, currentUser, navigate]);
 
-  const rejectCall = () => {
+  const rejectCall = useCallback(() => {
+    if (!incomingCall) return;
     setIncomingCall(null);
-    socket.emit('rejectCall', { to: incomingCall?.from });
-  };
+    socket.emit('rejectCall', { to: incomingCall.from });
+  }, [incomingCall]);
 
-  const handleEmojiClick = (emojiData: { emoji: string }) => {
+  const handleEmojiClick = useCallback((emojiData: { emoji: string }) => {
     setMessage(prev => prev + emojiData.emoji);
-  };
+  }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: MediaPreview['type']) => {
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: MediaPreview['type']) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Clean up previous preview
+      if (mediaPreview) {
+        URL.revokeObjectURL(mediaPreview.url);
+      }
+      
       const url = URL.createObjectURL(file);
       setMediaPreview({ file, url, type });
       setShowMediaOptions(false);
     }
-  };
+  }, [mediaPreview]);
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && canSend) {
       handleSend();
     }
-  };
+  }, [canSend, handleSend]);
 
-  const filteredChats = chatList.filter(chat =>
-    chat.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const canSend = Boolean(selectedChat && !isUploading && (message.trim() || mediaPreview));
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-dvh w-screen items-center justify-center bg-gradient-to-b from-blue-50 to-pink-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // If we're in an active call, show the VideoCallWrapper
   if (activeCall) {
@@ -313,6 +377,18 @@ const ChatPage: React.FC = () => {
       className="flex h-dvh w-screen font-sans overflow-hidden"
       style={{ background: 'linear-gradient(to bottom, #E0F2FF, #FDECEA)' }}
     >
+      {/* Error notification */}
+      {error && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-white hover:text-gray-200">
+              <FaTimes size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* SIDEBAR - Chat List */}
       <div
         className={`${
@@ -328,35 +404,52 @@ const ChatPage: React.FC = () => {
           <button
             onClick={() => navigate('/')}
             className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2 transition-colors"
+            aria-label="Close chat"
           >
             <FaTimes size={14} />
           </button>
         </div>
+        
         <input
           type="text"
           placeholder="Search name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="px-3 py-2 mb-4 rounded bg-white text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          aria-label="Search chats"
         />
+        
         <div className="space-y-2">
-          {filteredChats.map(chat => (
-            <div
-              key={chat.id}
-              onClick={() => handleSelectChat(chat)}
-              className={`cursor-pointer p-3 rounded-lg transition-colors ${
-                selectedChat?.id === chat.id ? 'bg-[#245fa0]' : 'hover:bg-[#276db9]'
-              }`}
-            >
-              <div className="font-semibold">{chat.name}</div>
-              <div className="text-sm text-blue-200">{chat.skill}</div>
+          {filteredChats.length === 0 ? (
+            <div className="text-center text-blue-200 py-8">
+              {searchTerm ? 'No chats found' : 'No chats available'}
             </div>
-          ))}
+          ) : (
+            filteredChats.map(chat => (
+              <div
+                key={chat.id}
+                onClick={() => handleSelectChat(chat)}
+                className={`cursor-pointer p-3 rounded-lg transition-colors ${
+                  selectedChat?.id === chat.id ? 'bg-[#245fa0]' : 'hover:bg-[#276db9]'
+                }`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleSelectChat(chat);
+                  }
+                }}
+              >
+                <div className="font-semibold">{chat.name}</div>
+                <div className="text-sm text-blue-200">{chat.skill}</div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
       {/* Chat Window */}
-        <div
+      <div
         className={`${
           isMobile
             ? showChatList
@@ -366,13 +459,14 @@ const ChatPage: React.FC = () => {
         } flex flex-col rounded-tl-xl shadow-md overflow-hidden transition-all duration-300 ease-in-out`}
       >
         {/* Header */}
-       <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
           <div className="flex items-center gap-3">
             {/* Back button for mobile */}
             {isMobile && (
               <button
                 onClick={handleBackToChats}
                 className="text-[#3178C6] hover:text-blue-700 transition-colors p-1"
+                aria-label="Back to chat list"
               >
                 <FaArrowLeft size={18} />
               </button>
@@ -381,7 +475,7 @@ const ChatPage: React.FC = () => {
               <div className="text-lg font-semibold">
                 {selectedChat?.name || 'Select a user'}
               </div>
-              <div className="text-sm text-gray-500">{selectedChat?.skill}</div>
+              {selectedChat && <div className="text-sm text-gray-500">{selectedChat.skill}</div>}
             </div>
           </div>
           
@@ -391,6 +485,7 @@ const ChatPage: React.FC = () => {
                 onClick={() => callUser(false)}
                 className="hover:text-blue-700 transition-colors p-2"
                 title="Voice call"
+                aria-label="Start voice call"
               >
                 <FaPhone size={18} />
               </button>
@@ -398,6 +493,7 @@ const ChatPage: React.FC = () => {
                 onClick={() => callUser(true)}
                 className="hover:text-blue-700 transition-colors p-2"
                 title="Video call"
+                aria-label="Start video call"
               >
                 <FaVideo size={18} />
               </button>
@@ -405,9 +501,12 @@ const ChatPage: React.FC = () => {
           )}
         </div>
 
+        {/* Incoming Call Notification */}
         {incomingCall && !activeCall && (
           <div className="p-4 text-center bg-yellow-100 border-b">
-            <p className="mb-3">📞 Incoming {incomingCall.type} call...</p>
+            <p className="mb-3">
+              📞 Incoming {incomingCall.type} call from {incomingCall.callerInfo.name}
+            </p>
             <div className="flex justify-center gap-3">
               <button 
                 onClick={answerCall} 
@@ -427,60 +526,75 @@ const ChatPage: React.FC = () => {
 
         {/* Messages */}
         <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-3">
-          {selectedChat?.messages.map((msg, idx) => {
-        const isSenderYou =
-      (typeof msg.sender === 'string' && msg.sender === 'you') 
-  return (
-    <div
-      key={idx}
-      className={`max-w-xs md:max-w-md px-3 py-2 md:px-4 md:py-2 rounded-lg ${
-        isSenderYou
-          ? 'bg-[#CDE8FF] self-end ml-auto text-right'
-          : 'bg-white self-start mr-auto'
-      } shadow-[0_4px_8px_rgba(0,0,0,0.1)]`}
-    >
-      {msg.text && <div className="mb-1 text-sm md:text-base">{msg.text}</div>}
+          {!selectedChat ? (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              Select a chat to start messaging
+            </div>
+          ) : selectedChat.messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              No messages yet. Start a conversation!
+            </div>
+          ) : (
+                      selectedChat.messages.map((msg, idx) => {
+            const isSenderYou = msg.sender === 'you';
+            
+            return (
+              <div
+                key={`${msg.id || idx}`}
+                className={`max-w-xs md:max-w-md px-3 py-2 md:px-4 md:py-2 rounded-lg ${
+                  isSenderYou
+                    ? 'bg-[#CDE8FF] self-end ml-auto text-right'
+                    : 'bg-white self-start mr-auto'
+                } shadow-[0_4px_8px_rgba(0,0,0,0.1)]`}
+              >
+                {msg.text && <div className="mb-1 text-sm md:text-base">{msg.text}</div>}
 
-      {msg.mediaUrl && (
-        <div className="mt-2">
-          {msg.mediaType === 'image' && (
-            <img
-              src={msg.mediaUrl}
-              alt="Sent media"
-              className="max-w-full max-h-48 md:max-h-64 rounded shadow"
-            />
-          )}
-          {msg.mediaType === 'video' && (
-            <video
-              src={msg.mediaUrl}
-              controls
-              className="max-w-full rounded shadow"
-            />
-          )}
-          {msg.mediaType === 'audio' && (
-            <audio
-              controls
-              src={msg.mediaUrl}
-              className="w-full"
-            />
-          )}
-          {msg.mediaType === 'document' && (
-            <a
-              href={msg.mediaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 underline text-sm"
-            >
-              📄 View Document
-                  </a>
+                {msg.mediaUrl && (
+                  <div className="mt-2">
+                    {msg.mediaType === 'image' && (
+                      <img
+                        src={msg.mediaUrl}
+                        alt="Sent media"
+                        className="max-w-full max-h-48 md:max-h-64 rounded shadow"
+                        loading="lazy"
+                      />
+                    )}
+                    {msg.mediaType === 'video' && (
+                      <video
+                        src={msg.mediaUrl}
+                        controls
+                        className="max-w-full rounded shadow"
+                        preload="metadata"
+                      />
+                    )}
+                    {msg.mediaType === 'audio' && (
+                      <audio
+                        controls
+                        src={msg.mediaUrl}
+                        className="w-full"
+                        preload="metadata"
+                      />
+                    )}
+                    {msg.mediaType === 'document' && (
+                      <a
+                        href={msg.mediaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline text-sm hover:text-blue-800"
+                      >
+                        📄 View Document
+                      </a>
+                    )}
+                  </div>
                 )}
+                <div className="text-xs text-gray-400 mt-1">{msg.timestamp}</div>
               </div>
-            )}
-
-            <div className="text-xs text-gray-400 mt-1">{msg.timestamp}</div>
-          </div>
-        );
-      })}
+            );
+          })
+                          
+                    
+                  
+          )}
           <div ref={chatEndRef} />
         </div>
 
@@ -492,8 +606,12 @@ const ChatPage: React.FC = () => {
                 {mediaPreview.type}: {mediaPreview.file.name}
               </span>
               <button
-                onClick={() => setMediaPreview(null)}
+                onClick={() => {
+                  URL.revokeObjectURL(mediaPreview.url);
+                  setMediaPreview(null);
+                }}
                 className="text-red-500 hover:text-red-700 p-1"
+                aria-label="Remove media"
               >
                 <FaTrash size={14} />
               </button>
@@ -502,85 +620,90 @@ const ChatPage: React.FC = () => {
         )}
 
         {/* Input */}
-        <div className="relative flex items-center px-3 py-2 md:px-4 md:py-3 bg-white border-t gap-2 md:gap-3">
-          {/* Emoji Picker */}
-          {showEmojiPicker && (
-            <div className="absolute bottom-16 right-4 z-50">
-              <EmojiPicker onEmojiClick={handleEmojiClick} />
-            </div>
-          )}
-
-          {/* Media Options */}
-          {showMediaOptions && (
-            <div className="absolute bottom-16 left-4 bg-white border rounded-lg shadow-lg p-2 z-50">
-              <div className="flex flex-col gap-2">
-                <label className="cursor-pointer hover:bg-gray-100 p-2 rounded">
-                  <span className="text-sm">📷 Photo</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, 'image')}
-                    className="hidden"
-                  />
-                </label>
-                <label className="cursor-pointer hover:bg-gray-100 p-2 rounded">
-                  <span className="text-sm">🎥 Video</span>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => handleFileChange(e, 'video')}
-                    className="hidden"
-                  />
-                </label>
-                <label className="cursor-pointer hover:bg-gray-100 p-2 rounded">
-                  <span className="text-sm">📄 Document</span>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.txt"
-                    onChange={(e) => handleFileChange(e, 'document')}
-                    className="hidden"
-                  />
-                </label>
+        {selectedChat && (
+          <div className="relative flex items-center px-3 py-2 md:px-4 md:py-3 bg-white border-t gap-2 md:gap-3">
+            {/* Emoji Picker */}
+            {showEmojiPicker && (
+              <div className="absolute bottom-16 right-4 z-50">
+                <EmojiPicker onEmojiClick={handleEmojiClick} />
               </div>
-            </div>
-          )}
+            )}
 
-          <button 
-            onClick={() => setShowMediaOptions(prev => !prev)} 
-            className="text-gray-600 hover:text-gray-800 transition-colors p-2"
-          >
-            <FaPlus size={16} />
-          </button>
-          
-          <button 
-            onClick={() => setShowEmojiPicker(prev => !prev)} 
-            className="text-yellow-500 hover:text-yellow-600 transition-colors p-2"
-          >
-            <FaSmile size={16} />
-          </button>
-          
-          <input
-            type="text"
-            placeholder={isUploading ? "Uploading..." : "Type a message"}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyPress}
-            className="flex-1 border-none outline-none px-3 py-2 md:px-4 md:py-2 rounded-full bg-gray-100 disabled:opacity-50 focus:bg-white focus:ring-2 focus:ring-blue-300 text-sm md:text-base"
-            disabled={isUploading}
-          />
-          
-          <button
-            onClick={canSend ? handleSend : undefined}
-            disabled={!canSend}
-            className={`transition-colors p-2 ${
-              canSend 
-                ? 'text-[#3178C6] hover:text-blue-700 cursor-pointer' 
-                : 'text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <FaPaperPlane size={16} />
-          </button>
-        </div>
+            {/* Media Options */}
+            {showMediaOptions && (
+              <div className="absolute bottom-16 left-4 bg-white border rounded-lg shadow-lg p-2 z-50">
+                <div className="flex flex-col gap-2">
+                  <label className="cursor-pointer hover:bg-gray-100 p-2 rounded">
+                    <span className="text-sm">📷 Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, 'image')}
+                      className="hidden"
+                    />
+                  </label>
+                  <label className="cursor-pointer hover:bg-gray-100 p-2 rounded">
+                    <span className="text-sm">🎥 Video</span>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => handleFileChange(e, 'video')}
+                      className="hidden"
+                    />
+                  </label>
+                  <label className="cursor-pointer hover:bg-gray-100 p-2 rounded">
+                    <span className="text-sm">📄 Document</span>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      onChange={(e) => handleFileChange(e, 'document')}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <button 
+              onClick={() => setShowMediaOptions(prev => !prev)} 
+              className="text-gray-600 hover:text-gray-800 transition-colors p-2"
+              aria-label="Add media"
+            >
+              <FaPlus size={16} />
+            </button>
+            
+            <button 
+              onClick={() => setShowEmojiPicker(prev => !prev)} 
+              className="text-yellow-500 hover:text-yellow-600 transition-colors p-2"
+              aria-label="Add emoji"
+            >
+              <FaSmile size={16} />
+            </button>
+            
+            <input
+              type="text"
+              placeholder={isUploading ? "Uploading..." : "Type a message"}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyPress}
+              className="flex-1 border-none outline-none px-3 py-2 md:px-4 md:py-2 rounded-full bg-gray-100 disabled:opacity-50 focus:bg-white focus:ring-2 focus:ring-blue-300 text-sm md:text-base"
+              disabled={isUploading}
+            />
+            
+            <button
+              onClick={canSend ? handleSend : undefined}
+              disabled={!canSend}
+              className={`transition-colors p-2 ${
+                canSend 
+                  ? 'text-[#3178C6] hover:text-blue-700 cursor-pointer' 
+                  : 'text-gray-400 cursor-not-allowed'
+              }`}
+              aria-label="Send message"
+            >
+              <FaPaperPlane size={16} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

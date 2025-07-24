@@ -2,23 +2,23 @@ import type { Skill } from './skill';
 import type { UserType } from './user';
 
 export interface MessageType {
-  id?: string; // for rendering optimization
+  id?: string; 
   sender: 'you' | 'them';
   text?: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'audio' | 'document';
   publicId?: string;
-  timestamp: string;         // "10:30 PM"
-  fullTimestamp?: string;    // ISO string
+  timestamp: string; 
   isRead: boolean;
 }
 
+
 export interface ChatType {
   id: string;
-  participants: UserType[];      // required for find() logic
-  name: string;                  // other user's name
-  photo: string;                 // other user's photo
-  skill: string;                 // e.g., "Learn: React"
+  participants: UserType[];     
+  name: string;                 
+  photo: string;                 
+  skill: string;                
   messages: MessageType[];
   lastMessage?: string;
   chatType: 'exchange' | 'learn' | 'teach';
