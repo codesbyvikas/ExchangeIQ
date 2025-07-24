@@ -11,20 +11,18 @@ module.exports = (io) => {
       console.log(`✅ [setup] Socket ${socket.id} registered for user ${userId}`);
     });
 
-    // ✅ ADD THIS: Handle joining specific chat rooms
     socket.on("joinChat", (chatId) => {
       socket.join(`chat_${chatId}`);
       console.log(`✅ Socket ${socket.id} joined chat room: chat_${chatId}`);
     });
 
-    // ✅ ADD THIS: Handle leaving specific chat rooms
     socket.on("leaveChat", (chatId) => {
       socket.leave(`chat_${chatId}`);
       console.log(`✅ Socket ${socket.id} left chat room: chat_${chatId}`);
     });
 
     socket.on("chatMessage", ({ roomId, message }) => {
-      io.to(roomId).emit("chatMessage", { message, from: socket.id });
+      socket.to(roomId).emit("chatMessage", { message, from: socket.id });
     });
 
     // Agora call handlers

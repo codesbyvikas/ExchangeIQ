@@ -201,28 +201,20 @@ router.post('/:chatId/message', authCheck, async (req, res) => {
       isRead: addedMessage.isRead
     };
 
-    // ✅ EMIT SOCKET EVENT TO ALL PARTICIPANTS
+    // ✅ FIXED: Emit to chat room instead of individual users
     const io = req.app.get('io');
     if (io) {
-      // Emit to all participants except the sender
-      chat.participants.forEach(participantId => {
-        if (participantId.toString() !== userId.toString()) {
-          const participantSocketId = participantId.toString();
-          
-          // Emit to user's personal room
-          io.to(participantSocketId).emit('newMessage', {
-            chatId: chatId,
-            message: {
-              ...responseMessage,
-              sender: 'them' // For the receiver, it's always 'them'
-            }
-          });
-          
-          console.log(`✅ Socket event sent to participant: ${participantSocketId}`);
+      // Emit to the specific chat room
+      io.to(`chat_${chatId}`).emit('newMessage', {
+        chatId: chatId,
+        message: {
+          ...responseMessage,
+          // The sender field will be determined by each client based on their own userId
+          sender: addedMessage.sender._id.toString()
         }
       });
       
-      console.log('✅ Socket event emitted to participants');
+      console.log(`✅ Socket event sent to chat room: chat_${chatId}`);
     } else {
       console.warn('⚠️ Socket.io not available for real-time updates');
     }
