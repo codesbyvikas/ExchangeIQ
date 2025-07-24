@@ -37,33 +37,29 @@ const isValidUrl = (string) => {
 
 // Helper function to get user ID from JWT token
 const getUserId = (req) => {
-  // JWT token contains user data, try both _id and id
   return req.user._id || req.user.id;
 };
 
 // Helper function to format chat for response
 const formatChatForUser = (chat, userId) => {
-  // Ensure participants are objects with _id
-  const participants = chat.participants.map(p =>
-    typeof p === 'object' && p !== null ? p : { _id: p }
-  );
-
-  const otherParticipant = participants.find(p => p._id.toString() !== userId.toString());
+  const otherParticipant = chat.participants.find(p => p._id.toString() !== userId.toString());
 
   return {
     id: chat._id,
     name: otherParticipant?.name || 'Unknown User',
     photo: otherParticipant?.photo || null,
-    skill: chat.skillInvolved
-      ? `${chat.chatType.charAt(0).toUpperCase() + chat.chatType.slice(1)}: ${chat.skillInvolved.name}`
-      : 'General Chat',
+    skill: chat.skillInvolved ?
+      `${chat.chatType.charAt(0).toUpperCase() + chat.chatType.slice(1)}: ${chat.skillInvolved.name}` :
+      'General Chat',
     messages: chat.messages.map(msg => ({
       id: msg._id,
-      sender: (msg.sender?._id || msg.sender).toString() === userId.toString() ? 'you' : 'them',
+      sender: (typeof msg.sender === 'object' && msg.sender && '_id' in msg.sender
+      ? msg.sender._id.toString()
+      : msg.sender.toString()) === userId.toString() ? 'you' : 'them',
       text: msg.text || '',
       mediaUrl: msg.mediaUrl || null,
       mediaType: msg.mediaType || null,
-      publicId: msg.publicId || null,
+      publicId: msg.publicId || null, 
       timestamp: msg.timestamp.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit'
@@ -75,11 +71,10 @@ const formatChatForUser = (chat, userId) => {
     chatType: chat.chatType,
     skillInvolved: chat.skillInvolved,
     unreadCount: chat.messages.filter(msg =>
-      (msg.sender?._id || msg.sender).toString() !== userId.toString() && !msg.isRead
+      msg.sender.toString() !== userId.toString() && !msg.isRead
     ).length
   };
 };
-
 
 // Get all chats for a user
 router.get('/', authCheck, async (req, res) => {
@@ -127,7 +122,6 @@ router.get('/', authCheck, async (req, res) => {
     });
   }
 });
-
 
 // Send a message - Updated for JWT
 router.post('/:chatId/message', authCheck, async (req, res) => {
@@ -304,49 +298,64 @@ router.patch('/:chatId/read', authCheck, async (req, res) => {
 // Get specific chat details with message pagination
 router.get('/:chatId', authCheck, async (req, res) => {
   try {
-    const userId = req.user._id;
-    const chatId = req.params.chatId;
+    const { chatId } = req.params;
+    const userId = getUserId(req);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
 
-    const chat = await Chat.findOne({
-      _id: chatId,
-      participants: userId,
-    })
-      .populate('participants', 'name photo') // include full participant details
+    console.log('📖 Fetching chat details:', { chatId, userId, page, limit });
+
+    const chat = await Chat.findById(chatId)
+      .populate('participants', 'name photo')
       .populate('skillInvolved', 'name')
-      .populate('messages.sender', 'name photo') // optional
-      .lean(); // make it plain JS
+      .populate('messages.sender', 'name');
 
     if (!chat) {
-      return res.status(404).json({ message: 'Chat not found or unauthorized' });
+      return res.status(404).json({ message: 'Chat not found' });
     }
 
-    res.json({
-      id: chat._id.toString(),
-      participants: chat.participants,
-      name: 'Chat', // or dynamically assign name from other participant
-      photo: '', // optional
-      skill: chat.skillInvolved?.name || '',
-      skillInvolved: chat.skillInvolved,
-      messages: (chat.messages || []).map(msg => ({
-        id: msg._id.toString(),
-        sender: msg.sender?._id?.toString() || 'unknown',
-        text: msg.text,
-        mediaUrl: msg.mediaUrl,
-        mediaType: msg.mediaType,
-        publicId: msg.publicId,
-        timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        fullTimestamp: msg.createdAt,
-        isRead: msg.isRead || false,
-      })),
-      chatType: chat.chatType || 'exchange',
+    // Check if user is participant
+    const isParticipant = chat.participants.some(p => p._id.toString() === userId.toString());
+    if (!isParticipant) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    // Paginate messages (newest first)
+    const totalMessages = chat.messages.length;
+    const startIndex = Math.max(0, totalMessages - (page * limit));
+    const endIndex = Math.max(0, totalMessages - ((page - 1) * limit));
+    const paginatedMessages = chat.messages.slice(startIndex, endIndex);
+
+    console.log(`📄 Paginated ${paginatedMessages.length} messages from ${totalMessages} total`);
+
+    // Create a temporary chat object for formatting
+    const chatForFormat = {
+      ...chat.toObject(),
+      messages: paginatedMessages
+    };
+
+    const formattedChat = formatChatForUser(chatForFormat, userId);
+
+    // Add pagination info
+    formattedChat.pagination = {
+      currentPage: page,
+      totalPages: Math.ceil(totalMessages / limit),
+      totalMessages,
+      hasNext: startIndex > 0,
+      hasPrev: endIndex < totalMessages
+    };
+
+    res.json(formattedChat);
+  } catch (error) {
+    console.error('❌ Error fetching chat:', error);
+    res.status(500).json({
+      message: 'Failed to fetch chat',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
-  } catch (err) {
-    console.error('GET /chat/:chatId error:', err);
-    res.status(500).json({ message: 'Failed to fetch chat', error: err.message });
   }
 });
 
-// Delete a message (soft delete)
+
 router.delete('/:chatId/message/:messageId', authCheck, async (req, res) => {
   try {
     const { chatId, messageId } = req.params;

@@ -18,7 +18,6 @@ const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.use(express.json());
 
-// CORS setup
 const allowedOrigins = [
   "http://localhost:5173",
   process.env.FRONTEND_BASE_URL,
