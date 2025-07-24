@@ -371,6 +371,7 @@ const ChatPage: React.FC = () => {
     const otherParticipant = selectedChat.participants?.find(
       (p) => p._id !== currentUser._id
     );
+    console.log("other", otherParticipant);
     if (!otherParticipant) return;
 
     const channelName = `call_${Date.now()}`;
@@ -404,6 +405,7 @@ const ChatPage: React.FC = () => {
     const otherParticipant = selectedChat.participants?.find(
       (p) => p._id !== currentUser._id
     );
+    console.log("other", otherParticipant);
     if (otherParticipant) {
       socket.emit('endCall', { to: otherParticipant._id });
     }

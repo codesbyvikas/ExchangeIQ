@@ -16,14 +16,14 @@ export default function VideoCall({ channelName, uid, onEnd }: Props) {
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const localVideoTrackRef = useRef<ICameraVideoTrack | null>(null);
   const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
-  const localRef = useRef<HTMLDivElement>(null);
-  const remoteRef = useRef<HTMLDivElement>(null);
+  const localRef = useRef<HTMLDivElement | null>(null);
+  const remoteRef = useRef<HTMLDivElement | null>(null);
 
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const joinCall = async () => {
@@ -35,6 +35,7 @@ export default function VideoCall({ channelName, uid, onEnd }: Props) {
 
       try {
         setLoading(true);
+
         const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
         clientRef.current = client;
 
@@ -49,8 +50,12 @@ export default function VideoCall({ channelName, uid, onEnd }: Props) {
         localVideoTrackRef.current = videoTrack;
         localAudioTrackRef.current = audioTrack;
 
-        if (localRef.current) {
-          videoTrack.play(localRef.current);
+        try {
+          if (localRef.current) {
+            videoTrack.play(localRef.current);
+          }
+        } catch (err) {
+          console.error("Local video play error:", err);
         }
 
         await client.publish([videoTrack, audioTrack]);
@@ -58,7 +63,11 @@ export default function VideoCall({ channelName, uid, onEnd }: Props) {
         client.on("user-published", async (user, mediaType) => {
           await client.subscribe(user, mediaType);
           if (mediaType === "video" && remoteRef.current) {
-            user.videoTrack?.play(remoteRef.current);
+            try {
+              user.videoTrack?.play(remoteRef.current);
+            } catch (err) {
+              console.error("Remote video play error:", err);
+            }
           }
           if (mediaType === "audio") {
             user.audioTrack?.play();
@@ -70,6 +79,7 @@ export default function VideoCall({ channelName, uid, onEnd }: Props) {
             remoteRef.current.innerHTML = "";
           }
         });
+
         setJoined(true);
       } catch (err: any) {
         console.error("Join call error:", err);
@@ -102,17 +112,15 @@ export default function VideoCall({ channelName, uid, onEnd }: Props) {
 
   const toggleMute = () => {
     if (localAudioTrackRef.current) {
-      const enabled = !isMuted;
-      localAudioTrackRef.current.setEnabled(enabled);
-      setIsMuted(!enabled);
+      localAudioTrackRef.current.setEnabled(isMuted);
+      setIsMuted(!isMuted);
     }
   };
 
   const toggleCamera = () => {
     if (localVideoTrackRef.current) {
-      const enabled = !isCameraOff;
-      localVideoTrackRef.current.setEnabled(enabled);
-      setIsCameraOff(!enabled);
+      localVideoTrackRef.current.setEnabled(isCameraOff);
+      setIsCameraOff(!isCameraOff);
     }
   };
 
@@ -131,45 +139,64 @@ export default function VideoCall({ channelName, uid, onEnd }: Props) {
     onEnd?.();
   };
 
+  const toggleFullscreen = (ref: React.RefObject<HTMLDivElement | null>) => {
+    const el = ref.current;
+    if (!el) return;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      el.requestFullscreen().catch((err) => {
+        console.error("Fullscreen error:", err);
+      });
+    }
+  };
+
   if (error) {
     return (
       <div className="text-white bg-red-600 p-4">
         <p>{error}</p>
-        <button onClick={handleEnd} className="bg-black mt-2 px-4 py-2">Close</button>
+        <button onClick={handleEnd} className="bg-black mt-2 px-4 py-2">
+          Close
+        </button>
       </div>
     );
   }
 
-        if (loading) {
-          return (
-            <div className="flex items-center justify-center h-screen bg-black">
-              <RotateLoader color="#ffffff" loading={loading} size={15} />
-              <span className="ml-4 text-white">Joining call...</span>
-            </div>
-          );
-        }
-
-        if (error) {
-          return (
-            <div className="text-white bg-red-600 p-4">
-              <p>{error}</p>
-              <button onClick={handleEnd} className="bg-black mt-2 px-4 py-2">Close</button>
-            </div>
-          );
-        }
-
- 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-black">
+        <RotateLoader color="#ffffff" loading={loading} size={15} />
+        <span className="ml-4 text-white">Joining call...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-6 bg-black text-white h-screen">
       <div className="flex gap-6">
+        {/* Local video */}
         <div className="relative">
-          <div ref={localRef} className="w-64 h-48 bg-gray-800 rounded" />
-          <div className="absolute bottom-1 left-1 text-xs bg-black bg-opacity-50 px-2 py-1 rounded">You</div>
+          <div
+            ref={localRef}
+            onDoubleClick={() => toggleFullscreen(localRef)}
+            className="w-64 h-48 bg-gray-800 rounded cursor-pointer"
+          />
+          <div className="absolute bottom-1 left-1 text-xs bg-black bg-opacity-50 px-2 py-1 rounded">
+            You (double-click to fullscreen)
+          </div>
         </div>
+
+        {/* Remote video */}
         <div className="relative">
-          <div ref={remoteRef} className="w-64 h-48 bg-gray-800 rounded" />
-          <div className="absolute bottom-1 left-1 text-xs bg-black bg-opacity-50 px-2 py-1 rounded">Them</div>
+          <div
+            ref={remoteRef}
+            onDoubleClick={() => toggleFullscreen(remoteRef)}
+            className="w-64 h-48 bg-gray-800 rounded cursor-pointer"
+          />
+          <div className="absolute bottom-1 left-1 text-xs bg-black bg-opacity-50 px-2 py-1 rounded">
+            Them (double-click to fullscreen)
+          </div>
         </div>
       </div>
 
@@ -194,7 +221,11 @@ export default function VideoCall({ channelName, uid, onEnd }: Props) {
         </button>
       </div>
 
-      {joined && <p className="text-sm text-gray-300 mt-2">Channel: {channelName}</p>}
+      {joined && (
+        <p className="text-sm text-gray-300 mt-2">
+          Channel: <span className="font-mono">{channelName}</span>
+        </p>
+      )}
     </div>
   );
 }
