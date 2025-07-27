@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Chat = require('../models/chat');
-const authCheck = require('../middlewares/auth'); // Your existing auth middleware
+const authCheck = require('../middlewares/auth'); 
 
 const validateMessage = (text, mediaUrl, mediaType) => {
   const errors = [];
@@ -48,7 +48,7 @@ const formatChatForUser = (chat, userId) => {
     skill: chat.skillInvolved ?
       `${chat.chatType.charAt(0).toUpperCase() + chat.chatType.slice(1)}: ${chat.skillInvolved.name}` :
       'General Chat',
-    participants: chat.participants, // ✅ Add participants to the response
+    participants: chat.participants, 
     messages: chat.messages.map(msg => ({
       id: msg._id,
       sender: (typeof msg.sender === 'object' && msg.sender && '_id' in msg.sender
@@ -120,7 +120,7 @@ router.get('/', authCheck, async (req, res) => {
   }
 });
 
-// ✅ UPDATED: Add socket support to message sending
+
 router.post('/:chatId/message', authCheck, async (req, res) => {
   try {
     const { chatId } = req.params;
@@ -201,15 +201,15 @@ router.post('/:chatId/message', authCheck, async (req, res) => {
       isRead: addedMessage.isRead
     };
 
-    // ✅ FIXED: Emit to chat room instead of individual users
+    
     const io = req.app.get('io');
     if (io) {
-      // Emit to the specific chat room
+      
       io.to(`chat_${chatId}`).emit('newMessage', {
         chatId: chatId,
         message: {
           ...responseMessage,
-          // The sender field will be determined by each client based on their own userId
+          
           sender: addedMessage.sender._id.toString()
         }
       });
