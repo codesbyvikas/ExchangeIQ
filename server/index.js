@@ -14,7 +14,6 @@ require("./config/google");
 const app = express();
 const server = http.createServer(app);
 
-// Trust proxy for secure cookies on Render
 app.set("trust proxy", 1);
 app.use(express.json());
 
@@ -39,7 +38,6 @@ app.use(
   })
 );
 
-// MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
@@ -50,12 +48,10 @@ mongoose
     process.exit(1);
   });
 
-// Passport initialization (no session needed for JWT)
 app.use(passport.initialize());
 
-// JWT verification middleware
 const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1]; // Bearer <token>
+  const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
     return res.status(401).json({ error: "No token provided" });
@@ -70,7 +66,6 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Socket.IO with JWT authentication
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -82,7 +77,6 @@ const io = new Server(server, {
   transports: ["websocket", "polling"],
 });
 
-// Socket.IO JWT authentication middleware
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
   
@@ -101,10 +95,8 @@ io.use((socket, next) => {
 
 app.set('io', io);
 
-// Initialize socket handlers
 require("./sockets/chatSocket")(io);
 
-// Health check
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
@@ -119,18 +111,15 @@ app.use("/chat", require("./routes/chat"));
 app.use("/media", require("./routes/chatMedia"));
 app.use('/agora', agoraTokenRoute);
 
-// 404 handler
 app.use("*", (req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-// Error handler
 app.use((err, req, res, next) => {
   console.error("Error:", err.stack);
   res.status(500).json({ error: "Something went wrong!" });
 });
 
-// Graceful shutdown
 process.on("SIGTERM", () => {
   console.log("SIGTERM received. Shutting down...");
   server.close(() => {
