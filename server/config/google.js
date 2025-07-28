@@ -2,7 +2,6 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20");
 const User = require("../models/user");
 
-// No need for serialize/deserialize with JWT
 passport.use(
   new GoogleStrategy(
     {
@@ -12,7 +11,6 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        console.log("🔐 Google Profile:", profile);
 
         let user = await User.findOne({ googleId: profile.id });
 
